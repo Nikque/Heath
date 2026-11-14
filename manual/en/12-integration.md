@@ -81,6 +81,20 @@ feature setboard=1 playother=1 ping=1 draw=0 sigint=0 sigterm=0 analyze=1 myname
 ```
 
 - Under a protocol too, playing strength is determined by `level` and by the time limits, and the book is used. `level` can also be set by NBoard's `set depth` and XBoard's `sd`.
+- NBoard and the opponent's time (since v4.5.5-newedax.14): with `-ponder on` (or `set ponder on`), Edax thinks on the opponent's time once the GUI sends back with `move` the move of its `go`. When the opponent plays the move Edax guessed (given by `move`, or by `set game` with the position after it), the next `go` goes on with that search; `ping` does not stop it. With `-keep-hash on` (or `set keep-hash on`), `set game` of the same game keeps the hash tables. Without `-ponder on` given, NBoard does not ponder. The commands:
+
+  ```
+  nboard 1
+  set depth 60
+  ping 1                 → pong 1
+  set game <GGF>         the position, Edax to move
+  go                     → === <move> <score> <time>   (or, at the time limit, "ping 2": === at once, then pong 2)
+  move <move>            the move of ===: Edax ponders on the opponent's time
+  ping 3                 → pong 3   (it does not stop the pondering)
+  set game <GGF>         the position after the opponent's move (or: move <the opponent's move>)
+  go                     → goes on with the search pondered when the opponent played the move guessed
+  ```
+
 - `bin/README.MS-Windows.txt` in the package (notes from the original Edax, in English) explains how to connect NBoard and WinBoard. It is old: file names and other details differ from the current package.
 - GGS (`-ggs`) takes its server from the settings `ggs-host`, `ggs-port`, `ggs-login` and `ggs-password` (not tried for this manual).
 

@@ -12,6 +12,7 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 
 | newedax | C 版（nikque） | C 版（eval2） |
 |---|---|---|
+| newedax.14 | nikque.27 | eval2.15 |
 | newedax.13 | nikque.27 | eval2.15 |
 | newedax.12 | nikque.27 | eval2.15 |
 | newedax.11 | nikque.26 | eval2.14 |
@@ -27,6 +28,43 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 | newedax.1 | nikque.17 | eval2.5 |
 
 ---
+
+## v4.5.5-newedax.14
+
+**NBoard で相手の時間にも考えるようにし、置換表を手から手へ残せるようにしました。** 2 つの設定で、どちらも指定しなければ切っています。`-ponder on` で NBoard のプロトコルが相手の時間にも考え、`-keep-hash on` で、新しい盤が同じ対局の続きのときに置換表を残します。探索・評価関数・`eval.dat`（v4.5.5-newedax.13 のもの。この版の ZIP に入っています）・book は変わりません。これらを指定しなければ、手と評価値は v4.5.5-newedax.13 と同じです。
+
+**変更点**
+
+- NBoard、`-ponder on`（または `set ponder on`）：Edax の `go` の手を GUI が `move` で返すと、Edax は相手の時間に考えます。相手の手を（直前の探索から）予想し、その後の局面を探索します。相手の手が `move`、またはその後の局面の `set game` で来て、予想と同じなら、その探索を続けます（次の `go` が続きを使います）。違う手なら止め、`go` はこれまでどおり探索します。`ping` は相手の番の思考を止めず、`go` の探索はこれまでどおり止めます。`go` の直後、探索が始まる前に来た `ping` でも止まるようにしました（v4.5.5-newedax.13 までは、この止めが失われ、探索が自分の限りまで続きました）。`-ponder on` を指定しないと、NBoard ではこれまでどおり考えません（`ponder` はほかのプロトコルのため既定が on なので、NBoard では指定したときだけ効きます）。
+- `-keep-hash on`（または `keep-hash on`、NBoard では `set keep-hash on`。既定は off）：新しい盤が同じ対局の続き（前の盤で石のあるマスに、新しい盤でもすべて石がある）なら、置換表を残します。NBoard の `set game`、Edax のプロトコルの `setboard` と FEN、libedax の盤に効きます。v4.5.5-newedax.13 までは、そのたびに置換表を消していました（記録がすべて無効になっていました）。そのため、手ごとに盤を送る GUI では毎手が空の表からの探索になり、人の番の探索（nikque GUI の「相手の番にも考える」）も次の手に生きていませんでした。NBoard では、相手の番に考えた局面が来たときは、この設定によらず残します。
+- `-ponder on -keep-hash on` で NBoard を使う GUI の命令の並び：
+
+```
+nboard 1
+set depth 60
+ping 1                 → pong 1
+set game <GGF>         局面（Edax の手番）
+go                     → === <手> <評価値> <時間>   （時間が来たら "ping 2"：=== がすぐ返り、その後に pong 2）
+move <手>              === の手：Edax は相手の時間に考える
+ping 3                 → pong 3   （相手の番の思考は止まらない）
+set game <GGF>         相手の手の後の局面（または move <相手の手>）
+go                     → 相手が予想した手を打ったときは、相手の番に始めた探索を続ける
+```
+
+- テスト：`tests/nboard-ponder.py`（上のことを `-info` の標準エラーで確かめる 57 項目）。
+- マニュアル：設定 `ponder` と `keep-hash`（4.6、14）、NBoard での相手の番の思考（12.1）。
+
+**互換性**
+
+- `-ponder on` と `-keep-hash on` を指定しなければ、答えは v4.5.5-newedax.13 と同じです（上の、`go` の直後の `ping` の止めのほか）。
+- `-keep-hash on` では、前の手の探索で見つけたものを使うので、評価値やノード数は空の表からの探索と同じになりません。
+- NBoard で `-ponder on` にすると、相手の時間にもスレッドを使います。同じ CPU でほかのエンジンを動かすときは、その時間を取ります。
+
+**確かめたこと**：下のテストの記録を見てください。`tests/nboard-ponder.py` の項目と、配布のプログラムが v4.5.5-newedax.13 と同じ結果とノード数になることです。
+
+**確かめていないこと**：相手の番の思考のありとなしの強さ（この版では対局していません）、NBoard の GUI そのもの、Android の実機、Windows ARM64。
+
+[テストと実測の記録](docs/validation/newedax.ja.md#v455-newedax14)
 
 ## v4.5.5-newedax.13
 

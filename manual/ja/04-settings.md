@@ -146,7 +146,8 @@ wEdax-x86-64.exe -l 12 -n 4 -book-file data/my.dat
 | `book-store-auto-save` | `on` | `book store`・`book learn` の後で、`<book のファイル名>.store` に保存するかどうか。[7 章](07-book-learning.md) |
 | `game-time`（`-t`） | なし | 1 局の持ち時間。[3.8](03-playing.md) |
 | `move-time` | なし | 1 手の時間 |
-| `ponder` | `on` | 相手の番の間も考える |
+| `ponder` | `on` | 相手の番の間も考える（NBoard では指定したときだけ。v4.5.5-newedax.14 から。[12.1](12-integration.md)） |
+| `keep-hash` | `off` | 新しい盤が同じ対局の続きのとき、置換表を残す（`setboard`、NBoard の `set game`。v4.5.5-newedax.14 から） |
 | `mode` | 3 | 起動したときの `mode`（[3.2](03-playing.md)） |
 | `verbose` | 1 | 表示の量（0〜4。[3.10](03-playing.md)） |
 | `search-log-file` | なし | 探索の記録を書き出すファイル |

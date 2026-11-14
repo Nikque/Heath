@@ -12,6 +12,7 @@ Each version contains all changes of the C versions on the same row.
 
 | newedax | C (nikque) | C (eval2) |
 |---|---|---|
+| newedax.14 | nikque.27 | eval2.15 |
 | newedax.13 | nikque.27 | eval2.15 |
 | newedax.12 | nikque.27 | eval2.15 |
 | newedax.11 | nikque.26 | eval2.14 |
@@ -27,6 +28,43 @@ Each version contains all changes of the C versions on the same row.
 | newedax.1 | nikque.17 | eval2.5 |
 
 ---
+
+## v4.5.5-newedax.14
+
+**Thinking on the opponent's time under NBoard, and the hash tables kept from move to move.** Two settings, both off unless given: `-ponder on` lets the NBoard protocol think on the opponent's time; `-keep-hash on` keeps the hash tables when a new board continues the game. The search, the evaluation, the `eval.dat` files (those of v4.5.5-newedax.13, in the ZIPs of this release) and the book are not changed: without these settings, the moves and the scores are those of v4.5.5-newedax.13.
+
+**Changes**
+
+- NBoard, `-ponder on` (or `set ponder on`): when the interface sends back with `move` the move of Edax's own `go`, Edax ponders: it guesses the opponent's move (from its last search) and searches the position after it. The opponent's move, given by `move` or by `set game` with the position after it, goes on with that search: the next `go` continues it. Another move stops it, and `go` searches as before. `ping` does not stop the pondering, and it stops the search of a `go` as before; a `ping` that comes just after a `go`, before its search starts, now stops it too (up to v4.5.5-newedax.13 that stop was lost, and the search went on to its own limit). Without `-ponder on` given, the NBoard protocol does not ponder, as before (`ponder` is on by default, for the other protocols: under NBoard only a setting given counts).
+- `-keep-hash on` (or `keep-hash on`; `set keep-hash on` under NBoard; off by default): a new board that continues the game (every square taken on the previous board is taken on the new one) keeps the hash tables, for `set game` of NBoard, `setboard` and the FEN of the Edax protocol, and the board of libedax. Up to v4.5.5-newedax.13 they were cleaned at each one (all their entries were dead), so an interface that sends the board of each move searched each move from empty tables, and a search on the person's turn (the pondering of nikque GUI) did not help the next move. Under NBoard, the position pondered keeps them in any case.
+- The commands of an interface that plays under NBoard with `-ponder on -keep-hash on`:
+
+```
+nboard 1
+set depth 60
+ping 1                 → pong 1
+set game <GGF>         the position, Edax to move
+go                     → === <move> <score> <time>   (or, at the time limit, "ping 2": === at once, then pong 2)
+move <move>            the move of ===: Edax ponders on the opponent's time
+ping 3                 → pong 3   (it does not stop the pondering)
+set game <GGF>         the position after the opponent's move (or: move <the opponent's move>)
+go                     → goes on with the search pondered when the opponent played the move guessed
+```
+
+- Tests: `tests/nboard-ponder.py` (57 checks of the above, with the standard error of `-info`).
+- Manual: the settings `ponder` and `keep-hash` (4.6, 14) and the pondering under NBoard (12.1).
+
+**Compatibility**
+
+- Without `-ponder on` and `-keep-hash on`, the answers are those of v4.5.5-newedax.13 (but the stop of a `ping` given just after a `go`, above).
+- With `-keep-hash on`, a search uses what the searches of the previous moves found: its scores and node counts are not those of a search from empty tables.
+- With `-ponder on` under NBoard, Edax uses its threads on the opponent's time: on the same CPUs as another engine, it takes time from it.
+
+**Checked**: see the tests below: the checks of `tests/nboard-ponder.py`, and the release programs give the same results and node counts as those of v4.5.5-newedax.13.
+
+**Not checked**: the strength with and without the pondering (no games were played for this release), NBoard GUI itself, real Android devices, Windows ARM64.
+
+[Tests and measurements](docs/validation/newedax.en.md#v455-newedax14)
 
 ## v4.5.5-newedax.13
 

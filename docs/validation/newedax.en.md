@@ -5,6 +5,17 @@ Tests and measurements done for each version, moved without changes from the for
 For what changed, see the [release notes](../../RELEASE-NOTES.md). "Above" and "below" in the text refer to positions in the former document.
 
 
+## v4.5.5-newedax.14
+
+Checks:
+
+- The release programs (64 and 48 slots, with the `eval.dat` of their build, which is that of v4.5.5-newedax.13): in each build, the 5 Windows programs give at level 12 on 40 midgame positions (no option) the same values, node counts and lines as the engine with which the weights were measured (the same check as for v4.5.5-newedax.13); on fforum-20-39 (1 thread, default level) the same answers and node counts as that engine (77,808,331 nodes with the 64 slots, 73,019,204 with the 48 slots, as v4.5.5-newedax.13), and 0 wrong moves and 0 wrong scores with `-l 60` (exact). The 7 Cassio cases pass with the 10 programs; the 6 DLLs pass 281 API checks with 0 failures. Android (NDK r27d): no error; 8 warnings, all the same one (`-Wdeprecated-volatile`: the `++` and `--` of the new `volatile int` counter of the NBoard `go` commands, which is only read and written under a lock; the generated code does the same).
+- `tests/nboard-ponder.py` (2 threads), with the `wEdax-x86-64-v4.exe` of each build (57 checks with the 64 slots, 55 with the 48: 2 depend on the moves the build plays): after the move of its own `go` sent back with `move`, Edax ponders (its process uses the CPU) under `-ponder on`; `ping` does not stop the pondering; the opponent's move guessed, given by `set game` or by `move`, goes on with the search pondered (`[switch from pondering to thinking]` of `-info`), another move stops it; a `go` followed at once by a `ping` is answered at once (0.00 to 0.23 s); `set game` of the same game keeps the hash tables under `-keep-hash on`, of a new game cleans them; `set ponder off` stops the pondering, `set ponder on` and `set keep-hash on` switch them on; with `-ponder off` and with no option, no pondering and `set game` cleans the hash tables; with no option, at depth 12 with 1 thread, the moves and scores of 14 positions are those of the `wEdax-x86-64-v4.exe` of v4.5.5-newedax.13.
+- The Edax protocol, as nikque GUI uses it (`setboard`, `level`, `go`; `setboard` and `hint 60` on the person's turn, then `stop`): with `keep-hash on`, the hash tables are not cleaned by the `setboard` of the next positions (6 cleanings without it, 0 with it). An engine without the setting (v4.5.5-newedax.13) answers `keep-hash on` with the warning `Unknown command` and goes on.
+- `tests/regression.cpp`: the 54 cases pass with the 64 and the 48 slots (AVX-512).
+- The eval tools: 16 programs built with `tools/eval/build-evtools.ps1` (x64 AVX-512, Boost 1.92) without an error.
+- Not checked: the strength with and without the pondering (no games), NBoard GUI itself, real Android devices, Windows ARM64.
+
 ## v4.5.5-newedax.13
 
 Checks:

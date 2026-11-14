@@ -5,6 +5,17 @@
 変更の内容は [修正一覧](../../RELEASE-NOTES.ja.md) を見てください。文中の「上の」「下の」は、もとの文書での位置を指します。
 
 
+## v4.5.5-newedax.14
+
+確かめたこと：
+
+- 配布のプログラム（64 枠と 48 枠。`eval.dat` はそれぞれの版のもので、v4.5.5-newedax.13 と同じ）：それぞれの版で、Windows の 5 種は、中盤 40 局面の Lv12（指定なし）で、重みを測ったエンジンと値・ノード数・読み筋が同じでした（v4.5.5-newedax.13 と同じ確かめ）。fforum-20-39（1 スレッド、既定のレベル）でも、そのエンジンと答え・ノード数が同じで（64 枠 77,808,331 ノード、48 枠 73,019,204 ノード。v4.5.5-newedax.13 と同じ）、`-l 60`（完全読み）では誤った手 0・誤った評価値 0 でした。Cassio の 7 件は 10 種すべてで通り、DLL 6 種は API の試験 281 項目を失敗 0 で通りました。Android（NDK r27d）：誤り 0。警告は 8 つで、すべて同じもの（`-Wdeprecated-volatile`：NBoard の `go` を数える新しい `volatile int` の `++` と `--`。鍵の下でしか読み書きせず、作られるコードの動きは同じ）です。
+- `tests/nboard-ponder.py`（2 スレッド）を、それぞれの版の `wEdax-x86-64-v4.exe` で流しました（64 枠 57 項目、48 枠 55 項目。2 項目は版の打つ手で流れるかが変わります）。`-ponder on` で、自分の `go` の手を `move` で返すと相手の時間に考える（プロセスが CPU を使う）、`ping` で止まらない、予想した相手の手が `set game` か `move` で来ると相手の番の探索を続ける（`-info` の `[switch from pondering to thinking]`）、違う手なら止める、`go` の直後の `ping` にすぐ答える（0.00〜0.23 秒）、`-keep-hash on` で同じ対局の `set game` は置換表を残し、新しい対局では消す、`set ponder off` で止まり、`set ponder on`・`set keep-hash on` で入る、`-ponder off` と指定なしでは考えず `set game` で置換表を消す、指定なしで深さ 12・1 スレッドの 14 局面の手と評価値が v4.5.5-newedax.13 の `wEdax-x86-64-v4.exe` と同じ、をすべて確かめました。
+- nikque GUI の使い方での Edax のプロトコル（`setboard`・`level`・`go`、人の番は `setboard` と `hint 60`、その後 `stop`）：`keep-hash on` では、次の局面の `setboard` で置換表を消しませんでした（指定なしでは 6 回、ありでは 0 回）。この設定を知らないエンジン（v4.5.5-newedax.13）は、`keep-hash on` に警告 `Unknown command` を出して、そのまま続けます。
+- `tests/regression.cpp`：54 件が 64 枠と 48 枠（AVX-512）で通りました。
+- 評価の道具：16 種を `tools/eval/build-evtools.ps1`（x64 AVX-512、Boost 1.92）で誤りなく組み立てました。
+- 確かめていないこと：相手の番の思考のありとなしの強さ（対局していません）、NBoard の GUI そのもの、Android の実機、Windows ARM64。
+
 ## v4.5.5-newedax.13
 
 確認：

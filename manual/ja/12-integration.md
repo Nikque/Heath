@@ -85,6 +85,20 @@ feature setboard=1 playother=1 ping=1 draw=0 sigint=0 sigterm=0 analyze=1 myname
 ```
 
 - プロトコルで動いているときも、対局の強さは `level` と持ち時間で決まり、book も使われます。`level` は、NBoard の `set depth`、XBoard の `sd` でも指定できます。
+- NBoard と相手の時間（v4.5.5-newedax.14 から）：`-ponder on`（または `set ponder on`）にすると、Edax の `go` の手を GUI が `move` で返したところから、相手の時間にも考えます。相手が Edax の予想した手を打てば（`move`、またはその後の局面の `set game` で来れば）、次の `go` はその探索を続けます。`ping` では止まりません。`-keep-hash on`（または `set keep-hash on`）にすると、同じ対局の `set game` で置換表を残します。`-ponder on` を指定しなければ、NBoard では考えません。命令の並び：
+
+  ```
+  nboard 1
+  set depth 60
+  ping 1                 → pong 1
+  set game <GGF>         局面（Edax の手番）
+  go                     → === <手> <評価値> <時間>   （時間が来たら "ping 2"：=== がすぐ返り、その後に pong 2）
+  move <手>              === の手：Edax は相手の時間に考える
+  ping 3                 → pong 3   （相手の番の思考は止まらない）
+  set game <GGF>         相手の手の後の局面（または move <相手の手>）
+  go                     → 相手が予想した手を打ったときは、相手の番に始めた探索を続ける
+  ```
+
 - 配布版の `bin/README.MS-Windows.txt`（元の Edax の説明。英語）に、NBoard と WinBoard との接続のしかたが書いてあります。古い説明なので、ファイル名などは今の配布版と違います。
 - GGS（`-ggs`）は、設定 `ggs-host`・`ggs-port`・`ggs-login`・`ggs-password` で接続先を決めます（このマニュアルの作成では試していません）。
 

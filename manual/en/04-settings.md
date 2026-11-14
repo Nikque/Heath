@@ -132,7 +132,8 @@ The package's `bin/config.ini` contains these settings. The "built-in value" is 
 | `book-store-auto-save` | `on` | Save to `<book file>.store` after `book store` and `book learn`, or not. [Chapter 7](07-book-learning.md) |
 | `game-time` (`-t`) | none | Time for a whole game. [3.8](03-playing.md) |
 | `move-time` | none | Time for one move |
-| `ponder` | `on` | Think during the opponent's turn |
+| `ponder` | `on` | Think during the opponent's turn (under NBoard, only when it is given: since v4.5.5-newedax.14, [12.1](12-integration.md)) |
+| `keep-hash` | `off` | Keep the hash tables when a new board continues the game (`setboard`, NBoard's `set game`; since v4.5.5-newedax.14) |
 | `mode` | 3 | The `mode` at start ([3.2](03-playing.md)) |
 | `verbose` | 1 | How much is displayed (0 to 4; [3.10](03-playing.md)) |
 | `search-log-file` | none | File where the search is logged |
