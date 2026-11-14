@@ -66,12 +66,16 @@ typedef struct Play {
 		int n;                 /**< number of such commands running */
 	} no_stop;                 /**< commands whose searches give their results to the book or to a game file: play_stop() does not cut them short */
 	char error_message[PLAY_MESSAGE_MAX_LENGTH]; /**< error message */
+	volatile int nboard_go;    /**< NBoard: number of "go" read and not answered yet (under the lock of the ui event) */
+	volatile bool stop_pending; /**< NBoard: a ping came for a "go" not answered yet: its search stops at once */
 } Play;
 
 /* functions */
 void play_init(Play*, Book*);
 void play_free(Play*);
 void play_new(Play*);
+void play_continue(Play*);
+bool play_board_continues(const Board*, const Board*);
 void play_ggs_init(Play*, const char*);
 bool play_load(Play*, const char*);
 void play_save(Play*, const char*);

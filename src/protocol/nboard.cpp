@@ -107,6 +107,35 @@ void ui_free_nboard(UI *ui)
 }
 
 /**
+ * @brief Play a move given by the interface.
+ *
+ * While Edax ponders, a move that leads to the position pondered keeps the pondering (the next "go" goes on with
+ * its search); another move stops it. The move that answers Edax's own "go" starts the pondering.
+ *
+ * @param play Play.
+ * @param string Move as a string.
+ * @param go_board The position of the last "go" (NULL: none, or already played).
+ * @return true if the move has been legally played.
+ */
+static bool nboard_move(Play *play, const char *string, const Board *go_board)
+{
+	Move move;
+	Board next;
+	const Board before = play->board;
+
+	if (parse_move(string, &play->board, &move) == string) return false;
+
+	next = before;
+	board_update(&next, &move);
+	if (play->state == IS_PONDERING && !board_equal(&next, &play->ponder.board)) play_stop_pondering(play);
+	play_update(play, &move);
+	// (the NBoard protocol ponders only with -ponder on given: up to v4.5.5-newedax.13 it never pondered)
+	if (go_board && board_equal(&before, go_board) && options.ponder_set) play_ponder(play);
+
+	return true;
+}
+
+/**
  * @brief Loop event
  * @param ui user interface
  */
@@ -114,6 +143,8 @@ void ui_loop_nboard(UI *ui)
 {
 	char *cmd = NULL, *param = NULL;
 	Play *play = ui->play;
+	Board go_board;           // the position of the last "go": the move played from it is Edax's own move
+	bool go_board_set = false;
 
 	// loop forever
 	for (;;) {
@@ -139,20 +170,31 @@ void ui_loop_nboard(UI *ui)
 
 		} else if (string_is(cmd, "game")) {
 			Game game;
+			Board board;
 			int lastmove = parse_ggf(&game, param);
 			if (lastmove >= 0) {
-				game_get_board(&game, 60, &play->initial_board);
+				game_get_board(&game, 60, &board);
 				if (lastmove == PASS)	// https://github.com/okuhara/edax-reversi-AVX/issues/1
-					board_pass(&play->initial_board);
-				play_new(play);
+					board_pass(&board);
+				// the position pondered: the pondering goes on (the next "go" continues its search)
+				const bool pondered = (play->state == IS_PONDERING && board_equal(&board, &play->ponder.board));
+				if (!pondered) play_stop_pondering(play);
+				play->initial_board = board;
+				// -keep-hash on, and the same game a few moves later: the hash tables are kept (up to
+				// v4.5.5-newedax.13 they were cleaned at each "set game", the interfaces sending the position of
+				// each move). The position pondered keeps them in any case: the pondering goes on with them.
+				if (pondered || (options.keep_hash && play_board_continues(&play->board, &board))) play_continue(play);
+				else play_new(play);
+				go_board_set = false;
 			} else {
 				nboard_fail("Cannot parse game \"%s\"", param);
 			}
 
 		} else if (string_is(cmd, "move")) {
-			if (!play_user_move(play, param)) {
+			if (!nboard_move(play, param, go_board_set ? &go_board : NULL)) {
 				nboard_fail("Cannot parse move \"%s\"", param);
 			}
+			go_board_set = false;
 		} else if (string_is(cmd, "hint")) {
 
 			nboard_send("status Edax is thinking");
@@ -161,8 +203,17 @@ void ui_loop_nboard(UI *ui)
 
 		} else if (string_is(cmd, "go")) {
 			nboard_send("status Edax is thinking");
+			go_board = play->board;
+			go_board_set = true;
 			play_go(play, false);
 			nboard_send_move(&play->result);
+			// this "go" is answered: a ping does not stop anything more
+			lock(&ui->event);
+			if (--play->nboard_go <= 0) {
+				play->nboard_go = 0;
+				play->stop_pending = false;
+			}
+			unlock(&ui->event);
 			nboard_send("status Edax is waiting");
 
 		} else if (string_is(cmd, "quit", "eof")) {
@@ -172,12 +223,19 @@ void ui_loop_nboard(UI *ui)
 		} else if (string_is(cmd, "ping")) {
 			nboard_send("pong %s", param);
 
+		// switches: "set ponder on|off", "set keep-hash on|off"
+		} else if (string_is(cmd, "ponder", "keep-hash")) {
+			options_read(cmd, param);
+			if (!options.can_ponder) play_stop_pondering(play);
+
 		} else if (string_is(cmd, "learn")) {
 			nboard_send("status Edax is learning");
+			play_stop_pondering(play);
 			play_store(play);
 			nboard_send("status Edax is waiting");
 
-		} else if (play_user_move(play, cmd)) {
+		} else if (nboard_move(play, cmd, go_board_set ? &go_board : NULL)) {
+			go_board_set = false;
 
 		// error: unknown message
 		} else {

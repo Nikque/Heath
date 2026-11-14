@@ -44,6 +44,8 @@ void play_init(Play *play, Book *book)
 	play->ponder.launched = false;
 	spin_init(&play->result);
 	play->ponder.verbose = false;
+	play->nboard_go = 0;
+	play->stop_pending = false;
 	memset(play->error_message, 0, PLAY_MESSAGE_MAX_LENGTH);
 	play_force_init(play, "F5");
 }
@@ -64,18 +66,48 @@ void play_free(Play *play)
  */
 void play_new(Play *play)
 {
+	play->ponder.board.player = play->ponder.board.opponent = 0;
+	search_cleanup(&play->search);
+	play->state = IS_WAITING;
+	play_continue(play);
+}
+
+/**
+ * @brief Start again from the initial board, in the same game: unlike play_new(), the hash tables and the
+ * pondering (its thread, its state and its board) are kept.
+ *
+ * The NBoard protocol sends the position of each move with "set game": when it continues the game played
+ * before, the hash tables found by the search of the previous moves (and by the pondering) are kept.
+ *
+ * @param play Play.
+ */
+void play_continue(Play *play)
+{
 	play->clock = real_clock();
 	play->time[0].spent = play->time[1].spent = 0;
 	play->board = play->initial_board;
 	play->player = play->initial_player;
-	play->ponder.board.player = play->ponder.board.opponent = 0;
-	search_cleanup(&play->search);
 	play->i_game = play->n_game = 0;
-	play->state = IS_WAITING;
 	play->result.move = NOMOVE; // missing more initialisation ?
 	play->time[0].left = options.time;
 	play->time[1].left = options.time;
 	play->force.i_move = 0;
+}
+
+/**
+ * @brief Tell if a board continues the game of another board: every square taken on the previous board is
+ * taken on the new one.
+ *
+ * @param previous Previous board.
+ * @param board New board.
+ * @return true if the new board may follow the previous one in a game.
+ */
+bool play_board_continues(const Board *previous, const Board *board)
+{
+	const unsigned long long before = previous->player | previous->opponent;
+	const unsigned long long after = board->player | board->opponent;
+
+	return before != 0 && (before & ~after) == 0;
 }
 
 /**
@@ -395,7 +427,11 @@ void play_go(Play *play, const bool update)
 		if (options.play_type == EDAX_TIME_PER_MOVE) search_set_move_time(search, options.time);
 		else search_set_game_time(search, play->time[play->player].left);
 
-		search_time_init(search); // redondant, 
+		// NBoard: a ping read while this "go" was still waiting (while the pondering stopped, for instance) came
+		// before the search: search_run() would forget its stop. The interface wants the move now: the search
+		// gets the least time (its first iterations).
+		if (play->stop_pending) search_set_move_time(search, 0);
+		search_time_init(search); // redondant,
 		if (log_is_open(xboard_log)) {
 			 fprintf(xboard_log->f, "edax search> cpu: %d\n", options.n_task);
 			 fprintf(xboard_log->f, "edax search> time: left = %.2f mini = %.2f; maxi = %.2f; extra = %.2f\n",
@@ -700,10 +736,15 @@ bool play_set_initial_board(Play *play, const Board *board, const int player)
 		warn("setboard: a board needs at least 4 discs\n");
 		return false;
 	}
+	play_stop_pondering(play);
+	// -keep-hash on: a board that continues the game (an interface sends the board of each move) keeps the hash
+	// tables of the previous moves (up to v4.5.5-newedax.13 they were always cleaned)
+	const bool continues = options.keep_hash && play_board_continues(&play->board, board);
 	play->initial_board = *board;
 	play->initial_player = player;
 	play_force_init(play, "");
-	play_new(play);
+	if (continues) play_continue(play);
+	else play_new(play);
 	return true;
 }
 

@@ -132,7 +132,18 @@ static void ui_read_input(UI *ui)
 			play_stop(play);
 			if (ui->type == UI_GGS) play_stop(play + 1);
 		} else if (ui->type == UI_NBOARD && string_is(cmd, "ping")) {
-			play_stop(play);
+			// ping stops the thinking (the move is sent at once, with the last result), not the pondering: the
+			// interface sends a ping before each of its moves, while Edax ponders on the opponent's time.
+			// A ping after a "go" not answered yet always stops: the "go" may still wait (behind the stop of
+			// the pondering, for instance), and its search would forget a stop sent before it starts.
+			if (play->nboard_go > 0) {
+				play->stop_pending = true;
+				play_stop(play);
+			} else if (play->state != IS_PONDERING) {
+				play_stop(play);
+			}
+		} else if (ui->type == UI_NBOARD && string_is(cmd, "go")) {
+			++play->nboard_go;
 		} else if (ui->type == UI_XBOARD && string_is(cmd, "?")) {
 			play_stop(play);
 		} else {

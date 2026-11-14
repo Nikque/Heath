@@ -36,6 +36,8 @@ Options options = {
 	.time = TIME_MAX, // infinite time
 	.play_type = EDAX_FIXED_LEVEL,
 	.can_ponder = true,
+	.ponder_set = false,
+	.keep_hash = false,
 	.depth = -1,
 	.selectivity = -1,
 	.mode = 3,
@@ -119,6 +121,7 @@ void options_usage(void)
 		"                                (with a time, -l caps the level; without -l, no cap)\n"
 		"  -speed <n|auto>               search speed (nodes/s) used to share the time; auto: measured.\n"
 		"  -ponder <on/off>              search during opponent time.\n"
+		"  -keep-hash <on/off>           keep the hash tables when a new board continues the game.\n"
 		"  -probcut-model <refit|standard> probcut error model (default: refit, see README).\n"
 		"  -eval-file                    read eval weight from this file.\n"
 		"  -book-file                    load opening book from this file.\n"
@@ -317,7 +320,11 @@ int options_read(const char *option, const char *value)
 			if (options.speed_set) options.speed = string_to_real(value, options.speed);
 		}
 		else if (string_is(option, "nps")) options.nps = 0.001 * string_to_real(value, options.nps);
-		else if (string_is(option, "ponder")) option_boolean(option, value, &options.can_ponder);
+		else if (string_is(option, "ponder")) {
+			option_boolean(option, value, &options.can_ponder);
+			options.ponder_set = true;
+		}
+		else if (string_is(option, "keep-hash")) option_boolean(option, value, &options.keep_hash);
 		else if (string_is(option, "mode")) options.mode = option_int(option, value, options.mode);
 
 		else if (string_is(option, "inc-pvnode-sort-depth")) options.inc_sort_depth[PV_NODE] = option_int(option, value, options.inc_sort_depth[PV_NODE]);
@@ -626,6 +633,7 @@ void options_dump(FILE *f)
 	fprintf(f, "\tsearch alloted time:"); time_print(options.time, false, stdout); fprintf(f, "\n");
 	fprintf(f, "\tsearch with: %s\n", play_type[options.play_type]);
 	fprintf(f, "\tsearch pondering: %s\n", boolean_string[options.can_ponder]);
+	fprintf(f, "\tkeep the hash tables of the game: %s\n", boolean_string[options.keep_hash]);
 	fprintf(f, "\tsearch depth: %d\n", options.depth);
 	fprintf(f, "\tsearch selectivity: %d\n", options.selectivity);
 	fprintf(f, "\tsearch speed %.0f N/s\n", options.speed);

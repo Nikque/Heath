@@ -41,6 +41,8 @@ typedef struct {
 	long long time;                       /**< time in sec. */
 	PlayType play_type;                   /**< game|move-time switch */
 	bool can_ponder;                      /**< pondering on/off */
+	bool ponder_set;                      /**< pondering set explicitly (the NBoard protocol ponders only then) */
+	bool keep_hash;                       /**< keep the hash tables when a new position continues the game */
 	int depth;                            /**< depth (only for testing) */
 	int selectivity;                      /**< selectivity (only for testing) */
 
