@@ -12,6 +12,7 @@ Each version contains all changes of the C versions on the same row.
 
 | newedax | C (nikque) | C (eval2) |
 |---|---|---|
+| newedax.15 | nikque.28 | eval2.16 |
 | newedax.14 | nikque.27 | eval2.15 |
 | newedax.13 | nikque.27 | eval2.15 |
 | newedax.12 | nikque.27 | eval2.15 |
@@ -28,6 +29,24 @@ Each version contains all changes of the C versions on the same row.
 | newedax.1 | nikque.17 | eval2.5 |
 
 ---
+
+## v4.5.5-newedax.15
+
+**A fix of the exact search: a wrong score (and move) at level 60, rarely, from 17 empties on.** The search, the evaluation and its `eval.dat` files (those of v4.5.5-newedax.13, in the ZIPs of this release) and the book are otherwise not changed.
+
+**Fix**
+
+- An exact search (a level whose depth is the number of empties, with no selectivity) first searches the position with selectivity (probcut), then exactly. Between those iterations, a node of the midgame search at the depth where the endgame search starts (`DEPTH_MIDGAME_TO_ENDGAME`, 15 empties) was stored in the hash table as exact, because its moves are searched by the endgame search. When that node has to pass, the search of the opponent stays in the midgame search at the same depth, where probcut can cut it: that score was stored as exact and taken by the exact iteration. The exact score of the root, and its move, could then be wrong (always a few discs). In the data of the new `eval.dat` work, about 1 to 2 exact searches in 100,000 at 17 empties gave a wrong score (with 1 or 4 threads, with any hash table size: the same positions every time). Now such a node (a pass) is stored with the selectivity of the search.
+- The same error is in the C version (v4.5.5-nikque.27, v4.5.5-eval2.15: fixed in v4.5.5-nikque.28 and v4.5.5-eval2.16), and in Edax 4.5.5 and 4.5.6 of Toshihiko Okuhara (edax-reversi-AVX), from which they come. Edax 4.6 and 4.7 of Richard Delorme do not have it.
+
+**Compatibility**
+
+- The scores of exact searches that were right do not change. The node counts change a little (0.01% more on 1,640 positions of 17 to 22 empties); midgame searches (no endgame depth) are not changed.
+- A book whose positions were searched exactly with an earlier version can hold such wrong scores (rarely).
+
+**Checked**: 1,205 positions whose exact scores were wrong (most of them with 17 empties; the scores of an independent solver): all right now, with 1 and 4 threads and hash tables of 2^20 and 2^24; the release programs below.
+
+[Tests and measurements](docs/validation/newedax.en.md#v455-newedax15)
 
 ## v4.5.5-newedax.14
 

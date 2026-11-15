@@ -5,6 +5,18 @@ Tests and measurements done for each version, moved without changes from the for
 For what changed, see the [release notes](../../RELEASE-NOTES.md). "Above" and "below" in the text refer to positions in the former document.
 
 
+## v4.5.5-newedax.15
+
+Checks:
+
+- The cause, found on the positions of the new `eval.dat` work whose exact scores disagreed between a parent and its children: with the score of each search stored in the hash table recorded and searched again exactly afterwards, every wrong score came from one entry, of depth 15, selectivity 0 and score = beta, stored by a node that passed. With probcut, the hash table or the hack of that entry turned off, the wrong scores were gone; with ETC, the stability cutoff or the PV extension turned off, they stayed.
+- 1,205 positions (17 to 20 empties, most of them 17; the exact scores of an independent solver without hash table): 504 of them were wrong before the fix with the eval of that work, 285 with the `eval.dat` of the 64 slots; 0 after it, with 1 and 4 threads and hash tables of 2^20 and 2^24. 1,936 positions of 16 empties: 5 wrong before, 0 after. 1,640 positions of 17 to 22 empties taken at random: the same scores before and after, 0.011% more nodes.
+- The same 1,205 positions with other engines (1 thread, hash table 2^20, the `eval.dat` of Edax 4.5.5): Edax 4.5.5 and 4.5.6 of Toshihiko Okuhara (edax-reversi-AVX, and its master of 2026-11-03) 267 wrong, 0 with this fix; Edax 4.6 and 4.7 of Richard Delorme 0 (their hack stores a node as exact only when its depth is more than its empties, which does not happen).
+- The release programs (64 and 48 slots, with the `eval.dat` of their build, that of v4.5.5-newedax.13): in each build, the 5 Windows programs give at level 12 on 40 midgame positions the same values, node counts and lines as v4.5.5-newedax.14; on fforum-20-39 (1 thread, default level) the same scores and moves (77,808,331 nodes with the 64 slots, as v4.5.5-newedax.14; 73,019,237 with the 48 slots, 33 more), 0 wrong moves and scores with `-l 60`, and 0 wrong scores on the 1,205 positions above with `-l 60`. The 7 Cassio cases pass with the 10 programs; the 6 DLLs pass 281 API checks with 0 failures; `tests/nboard-ponder.py` passes (57 checks in each build). Android (NDK r27d): no error, the same 8 warnings as v4.5.5-newedax.14.
+- `tests/regression.cpp`: the 54 cases pass with the 64 and the 48 slots (AVX-512).
+- The eval tools: 16 programs built with `tools/eval/build-evtools.ps1` (x64 AVX-512, Boost 1.92) without an error.
+- Not checked: real Android devices, Windows ARM64.
+
 ## v4.5.5-newedax.14
 
 Checks:

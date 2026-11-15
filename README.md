@@ -17,7 +17,7 @@ For Linux and macOS executables, use the C version ([edax-reversi-AVX releases](
 
 - Evaluation: since v4.5.5-newedax.13, a new evaluation of 64 slots (or 48), with its own `eval.dat`; the default probcut model is `refit`. Up to v4.5.5-newedax.12 it was eval2, with the same results as the C version.
 - Commands and settings are the same as the C version; the search results differ (the evaluation).
-- Each newedax release contains all changes of a C release. The latest, **v4.5.5-newedax.14**, contains C v4.5.5-nikque.27 / v4.5.5-eval2.15; it can think on the opponent's time under NBoard (`-ponder on`) and keep the hash tables from move to move (`-keep-hash on`).
+- Each newedax release contains all changes of a C release. The latest, **v4.5.5-newedax.15**, contains C v4.5.5-nikque.28 / v4.5.5-eval2.16; it fixes a rare wrong score of the exact search from 17 empties on (v4.5.5-newedax.14 added thinking on the opponent's time under NBoard, `-ponder on`, and the hash tables kept from move to move, `-keep-hash on`).
 
 ## Differences from the C version
 
@@ -66,7 +66,7 @@ Linux・macOS 用の実行ファイルは C 版（[edax-reversi-AVX の Releases
 
 - 評価関数：v4.5.5-newedax.13 から、64 枠（または 48 枠）の新しい評価関数で、専用の `eval.dat` を使います。ProbCut の既定は `refit` です。v4.5.5-newedax.12 までは eval2 で、C 版と同じ結果でした。
 - コマンドと設定は C 版と同じです。探索の結果は評価関数が違うので変わります。
-- newedax の各版は、C 版のある版の変更をすべて含みます。最新の **v4.5.5-newedax.14** は、C 版 v4.5.5-nikque.27・v4.5.5-eval2.15 を含みます。NBoard で相手の時間にも考え（`-ponder on`）、置換表を手から手へ残せます（`-keep-hash on`）。
+- newedax の各版は、C 版のある版の変更をすべて含みます。最新の **v4.5.5-newedax.15** は、C 版 v4.5.5-nikque.28・v4.5.5-eval2.16 を含みます。空き 17 マス以上の完全読みで、まれに評価値を誤っていたのを直しました（v4.5.5-newedax.14 で、NBoard で相手の時間にも考える `-ponder on` と、置換表を手から手へ残す `-keep-hash on` を足しました）。
 
 ### C 版との違い
 
