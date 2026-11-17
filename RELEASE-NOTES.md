@@ -12,6 +12,7 @@ Each version contains all changes of the C versions on the same row.
 
 | Heath (newedax) | C (nikque) | C (eval2) |
 |---|---|---|
+| heath.16 | nikque.29 | eval2.17 |
 | newedax.15 | nikque.28 | eval2.16 |
 | newedax.14 | nikque.27 | eval2.15 |
 | newedax.13 | nikque.27 | eval2.15 |
@@ -29,6 +30,27 @@ Each version contains all changes of the C versions on the same row.
 | newedax.1 | nikque.17 | eval2.5 |
 
 ---
+
+## v4.5.5-heath.16
+
+**The first version under the name Heath (formerly newedax): the repository is now `Nikque/Heath` (the old address leads there). `book correct`, `book leaf recalculate` and `book learn` go on from a book saved before they ended, and `book deepen` works.** The changes of the C version v4.5.5-nikque.29 / v4.5.5-eval2.17. The search, the evaluation and its `eval.dat` files (those of v4.5.5-newedax.13, in the ZIPs of this release) are not changed.
+
+**Changes**
+
+- `book correct` marks in the book each solved position it searched again; run again on a book saved before it ended (`<book-file>.err`, or the save at the exit), it searches only the positions without a mark, and removes all the marks when every position is done. Up to v4.5.5-newedax.15 a new run searched every solved position again from the beginning (days on a large book).
+- `book leaf recalculate` (2, 3, 4) does the same with the leaves it searches again.
+- `book learn <file>` writes `<book-file>.learn` (the lines of the file learned in the book saved to `<book-file>.store`, a check value of them, and the size, level and depth of the book); `book learn` with the same file on this book skips these lines; the file is removed when the whole file is learned.
+- `book deepen` gives the positions of a level shallower than the book the level of the book, and searches them again with it (it kept their level and searched them again with it: nothing became deeper, and a new run did all again).
+- The name: Heath (formerly newedax) in README, the release notes and the manual. The program still calls itself Edax (in the protocols used by GUIs), and the names of the earlier versions (`v4.5.5-newedax.N`) do not change.
+
+**Compatibility**
+
+- The marks are the two upper bits of the level byte of a position, in both forms of book file: the size and the format do not change, and a book without marks is the same as before. **A book saved before `book correct` or `book leaf recalculate` ended holds marks, and v4.5.5-newedax.15 and earlier read it as a damaged book**; a finished book has no mark. The eval tools (`tools/eval`) read the level without the marks.
+- The search is not changed: the same values, node counts and lines as v4.5.5-newedax.15.
+
+**Checked**: `tests/book-resume.py` (41 checks, also in form 2); the 14 book suites of the C version give the same books as v4.5.5-newedax.15 (except the save date; with `-book-seed 1` for the suite that learns with a random seed from the clock); `tests/regression.cpp` (54 cases); the release programs of both builds give the same values, node counts and lines as v4.5.5-newedax.15.
+
+[Tests and measurements](docs/validation/newedax.en.md#v455-heath16)
 
 ## v4.5.5-newedax.15
 

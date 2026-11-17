@@ -156,7 +156,7 @@ f5f4e3
 - At the end, `N/M games learned` is printed (N games learned out of M lines). A line with an illegal move produces a warning and is not learned.
 - The result is saved to `<book file name>.store`.
 
-**Continuing a run that did not end** (since the version after v4.5.5-newedax.15):
+**Continuing a run that did not end** (since v4.5.5-heath.16):
 
 - Each time it saves to `.store`, it also writes a small text file `<book file name>.learn`: how many lines of the file of games are learned, a check value of these lines, and the number of positions, the level and the depth of the book then.
 - When a run stops before its end (Edax closed, the PC stopped...), load `.store` or the book saved at the exit with `book load`, and run `book learn` again **with the same file of games**. The lines learned are skipped: only the other lines are played and learned.
@@ -398,6 +398,14 @@ The automatic expansion commands run for a long time. **If they stop (power fail
 - Start Edax and type `book load data/book.dat.dev2`. In this case too, the automatic save goes to `book-file` (note 2 of [6.6](06-book-basics.md)).
 
 Then type the same command again (`book deviate2 5 5`, for example).
+
+Whether the same command, typed again, searches again what was done:
+
+- `book deviate` and the like, `book enhance`, `book leaf expand`, `book fill`, `book fill2`, `book play`, `book add`: the moves expanded and the positions added are in the book, so what was done is not searched again (only walked again).
+- `book correct` and the `book leaf recalculate` family: each position searched again gets a mark in the book, and only the positions without a mark are searched (since v4.5.5-heath.16; [8.6](08-book-maintenance.md), [8.7](08-book-maintenance.md)). A book saved with marks cannot be read by v4.5.5-newedax.15 and earlier.
+- `book learn <file>`: `<book file name>.learn` tells the lines learned, and with the same file these lines are skipped (since v4.5.5-heath.16; book learn in [7.2](07-book-learning.md)).
+- `book deepen`: the positions given the level of the book are not searched again (since v4.5.5-heath.16; [8.7](08-book-maintenance.md)).
+- Up to v4.5.5-newedax.15, `book correct`, the `book leaf recalculate` family, `book learn` and `book deepen` started over from the beginning.
 
 ## 7.6 Expanding several leaves in parallel: book-expand-tasks
 

@@ -2,11 +2,11 @@
 
 Heath (formerly newedax) is the Othello engine [Edax 4.5.5 nikque](https://github.com/Nikque/edax-reversi-AVX) (its eval2 line) ported to C++23, with a new evaluation function since v4.5.5-newedax.13: 64 feature slots (and a 48-slot build), trained again. At the same time it is about 60 Elo stronger than the eval2 evaluation; it uses less memory for books than the C version.
 
-[日本語](#日本語) · [Download](https://github.com/Nikque/newedax/releases/latest) · [Manual](manual/en/README.md) · [Release notes](RELEASE-NOTES.md) · [Tests and measurements](docs/validation/newedax.en.md)
+[日本語](#日本語) · [Download](https://github.com/Nikque/Heath/releases/latest) · [Manual](manual/en/README.md) · [Release notes](RELEASE-NOTES.md) · [Tests and measurements](docs/validation/newedax.en.md)
 
 ## Download and run
 
-1. Download a ZIP from the [latest release](https://github.com/Nikque/newedax/releases/latest) and unpack it: `edax-…-64.zip` (the default, 64 slots) or `edax-…-48.zip` (48 slots: faster per node, weaker at the same time). It contains executables for Windows (x64, x86) and Android, the libedax DLLs, the training tools, and the `eval.dat` of its build.
+1. Download a ZIP from the [latest release](https://github.com/Nikque/Heath/releases/latest) and unpack it: `edax-…-64.zip` (the default, 64 slots) or `edax-…-48.zip` (48 slots: faster per node, weaker at the same time). It contains executables for Windows (x64, x86) and Android, the libedax DLLs, the training tools, and the `eval.dat` of its build.
 2. Open the `bin` folder and start the executable from **inside that folder**. On Windows, start with `wEdax-x86-64.exe`; use `-v3` (AVX2) or `-v4` (AVX-512) if your CPU supports it.
 
 The `bin/` folder of the repository holds only the data (`book.dat`, `config.ini`, and the `eval.dat` of eval2, which is not for the builds since v4.5.5-newedax.13: they read it with a warning, but their evaluation is then wrong; use the `eval.dat` of a release ZIP). Commands and settings are the same as the C version: see the [manual](manual/en/README.md).
@@ -17,7 +17,7 @@ For Linux and macOS executables, use the C version ([edax-reversi-AVX releases](
 
 - Evaluation: since v4.5.5-newedax.13, a new evaluation of 64 slots (or 48), with its own `eval.dat`; the default probcut model is `refit`. Up to v4.5.5-newedax.12 it was eval2, with the same results as the C version.
 - Commands and settings are the same as the C version; the search results differ (the evaluation).
-- Each Heath release contains all changes of a C release. The latest, **v4.5.5-newedax.15**, contains C v4.5.5-nikque.28 / v4.5.5-eval2.16; it fixes a rare wrong score of the exact search from 17 empties on (v4.5.5-newedax.14 added thinking on the opponent's time under NBoard, `-ponder on`, and the hash tables kept from move to move, `-keep-hash on`).
+- Each Heath release contains all changes of a C release. The latest, **v4.5.5-heath.16**, contains C v4.5.5-nikque.29 / v4.5.5-eval2.17; `book correct`, `book leaf recalculate` and `book learn` go on from a book saved before they ended, and `book deepen` works (v4.5.5-newedax.15 fixed a rare wrong score of the exact search from 17 empties on; v4.5.5-newedax.14 added thinking on the opponent's time under NBoard, `-ponder on`, and the hash tables kept from move to move, `-keep-hash on`).
 
 ## Differences from the C version
 
@@ -51,11 +51,11 @@ GPL-3.0 ([LICENSE](LICENSE)). Based on Edax by Richard Delorme and [okuhara/edax
 
 Heath（旧名 newedax）は、オセロのエンジン [Edax 4.5.5 nikque](https://github.com/Nikque/edax-reversi-AVX)（eval2 の系列）を C++23 に移したものです。v4.5.5-newedax.13 から、評価関数を 64 枠（と 48 枠の版）で学習し直した新しいものにしました。同じ持ち時間で eval2 の評価関数より約 60 Elo 強く、book のメモリは C 版より少なくて済みます。
 
-[ダウンロード](https://github.com/Nikque/newedax/releases/latest) · [マニュアル](manual/ja/README.md) · [修正一覧](RELEASE-NOTES.ja.md) · [テストと実測の記録](docs/validation/newedax.ja.md)
+[ダウンロード](https://github.com/Nikque/Heath/releases/latest) · [マニュアル](manual/ja/README.md) · [修正一覧](RELEASE-NOTES.ja.md) · [テストと実測の記録](docs/validation/newedax.ja.md)
 
 ### 使い始め方
 
-1. [最新の Release](https://github.com/Nikque/newedax/releases/latest) の ZIP をダウンロードして展開します。`edax-…-64.zip`（既定の 64 枠）か `edax-…-48.zip`（48 枠：1 節点あたりは速いが、同じ時間では弱い）です。Windows（x64・x86）と Android の実行ファイル、libedax の DLL、学習ツール、その版の `eval.dat` が入っています。
+1. [最新の Release](https://github.com/Nikque/Heath/releases/latest) の ZIP をダウンロードして展開します。`edax-…-64.zip`（既定の 64 枠）か `edax-…-48.zip`（48 枠：1 節点あたりは速いが、同じ時間では弱い）です。Windows（x64・x86）と Android の実行ファイル、libedax の DLL、学習ツール、その版の `eval.dat` が入っています。
 2. `bin` フォルダーを開き、**そのフォルダーの中から**実行ファイルを起動します。Windows なら、まず `wEdax-x86-64.exe` を使ってください。CPU が対応していれば `-v3`（AVX2）・`-v4`（AVX-512）が速くなります。
 
 リポジトリの `bin/` にはデータ（`book.dat`、`config.ini`、eval2 の `eval.dat`）だけがあります。eval2 の `eval.dat` は v4.5.5-newedax.13 からの版には使えません（警告を出して読みますが、評価が正しくなりません）。Release の ZIP の `eval.dat` を使ってください。コマンドと設定は C 版と同じです（[マニュアル](manual/ja/README.md)）。
@@ -66,7 +66,7 @@ Linux・macOS 用の実行ファイルは C 版（[edax-reversi-AVX の Releases
 
 - 評価関数：v4.5.5-newedax.13 から、64 枠（または 48 枠）の新しい評価関数で、専用の `eval.dat` を使います。ProbCut の既定は `refit` です。v4.5.5-newedax.12 までは eval2 で、C 版と同じ結果でした。
 - コマンドと設定は C 版と同じです。探索の結果は評価関数が違うので変わります。
-- Heath の各版は、C 版のある版の変更をすべて含みます。最新の **v4.5.5-newedax.15** は、C 版 v4.5.5-nikque.28・v4.5.5-eval2.16 を含みます。空き 17 マス以上の完全読みで、まれに評価値を誤っていたのを直しました（v4.5.5-newedax.14 で、NBoard で相手の時間にも考える `-ponder on` と、置換表を手から手へ残す `-keep-hash on` を足しました）。
+- Heath の各版は、C 版のある版の変更をすべて含みます。最新の **v4.5.5-heath.16** は、C 版 v4.5.5-nikque.29・v4.5.5-eval2.17 を含みます。`book correct`・`book leaf recalculate`・`book learn` が途中で保存された book から続けられるようになり、`book deepen` が働くようになりました。v4.5.5-newedax.15 では、空き 17 マス以上の完全読みで、まれに評価値を誤っていたのを直しました（v4.5.5-newedax.14 で、NBoard で相手の時間にも考える `-ponder on` と、置換表を手から手へ残す `-keep-hash on` を足しました）。
 
 ### C 版との違い
 

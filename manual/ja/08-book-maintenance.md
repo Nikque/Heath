@@ -325,9 +325,9 @@ book の中の Leaf の評価値は、その Leaf を作ったときの探索の
 - 探索は、その局面に記録されている level で行います。同時に行う数は、`book-expand-tasks` に従います。
 - 途中経過と結果は、`<book のファイル名>.leaf`・`.leaf2`・`.leaf3`・`.leaf4` に保存されます。
 - **途中で保存されたファイルは、「一部の Leaf だけ新しく、negamax はまだ」の状態**です。読み込んで使うときは、`book negamax` を実行してください。
-- **途中で保存された book から、続きを計算できます**（v4.5.5-newedax.15 の次の版から）。くわしくは下の「途中から続ける」を見てください。
+- **途中で保存された book から、続きを計算できます**（v4.5.5-heath.16 から）。くわしくは下の「途中から続ける」を見てください。
 
-### 途中から続ける（v4.5.5-newedax.15 の次の版から）
+### 途中から続ける（v4.5.5-heath.16 から）
 
 計算し直した Leaf には、book の中に**印**が付きます。
 
@@ -406,7 +406,7 @@ Correcting solved positions...0 done (0 error found)
 - その後、`book fix` と同じ処理を行います。
 - 直した数が `error found` に出ます。
 - 途中経過は `.err` に保存されます。
-- **途中で保存された book から、続きを確かめられます**（v4.5.5-newedax.15 の次の版から）。確かめ直した局面には印が付きます。途中で止まったときは、`.err` か終了のときに保存された book を `book load` で読み、もう一度 `book correct` を実行します。印の付いた局面は飛ばし、残りだけを探索します。始めに次のように出ます。
+- **途中で保存された book から、続きを確かめられます**（v4.5.5-heath.16 から）。確かめ直した局面には印が付きます。途中で止まったときは、`.err` か終了のときに保存された book を `book load` で読み、もう一度 `book correct` を実行します。印の付いた局面は飛ばし、残りだけを探索します。始めに次のように出ます。
 
 ```
 Correcting solved positions: 50000 already done by a run that did not end, 150000 left
@@ -425,7 +425,7 @@ Correcting solved positions: 50000 already done by a run that did not end, 15000
 
 ### book deepen：level の低い局面を、book の level で探索し直す
 
-level が book の level より浅い局面について、level を book の level に上げ、Leaf をその level で探索し直します（v4.5.5-newedax.15 の次の版から）。
+level が book の level より浅い局面について、level を book の level に上げ、Leaf をその level で探索し直します（v4.5.5-heath.16 から）。
 
 - 「浅い」とは、その局面の空きの数で、探索の深さが小さいか、深さが同じで枝刈りが多い（selectivity が低い）ことです。
 - book の level より深い局面は、そのままにします。

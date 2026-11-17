@@ -12,6 +12,7 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 
 | Heath（newedax） | C 版（nikque） | C 版（eval2） |
 |---|---|---|
+| heath.16 | nikque.29 | eval2.17 |
 | newedax.15 | nikque.28 | eval2.16 |
 | newedax.14 | nikque.27 | eval2.15 |
 | newedax.13 | nikque.27 | eval2.15 |
@@ -29,6 +30,27 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 | newedax.1 | nikque.17 | eval2.5 |
 
 ---
+
+## v4.5.5-heath.16
+
+**Heath（旧名 newedax）の名前での最初の版です。リポジトリは `Nikque/Heath` になりました（前のアドレスからも移ります）。`book correct`・`book leaf recalculate`・`book learn` が、途中で保存された book から続けられるようになり、`book deepen` が働くようになりました。** C 版 v4.5.5-nikque.29・v4.5.5-eval2.17 の変更です。探索・評価関数とその `eval.dat`（v4.5.5-newedax.13 のもの。この版の ZIP に入っています）は変わりません。
+
+**変更**
+
+- `book correct`：確かめ直した完全読みの局面に book の中で印を付けます。途中で保存された book（`<book-file>.err`、終了のときの保存）でもう一度実行すると、印のない局面だけを探索し、全部終わると印をすべて外します。v4.5.5-newedax.15 までは、もう一度実行すると全部を最初から探索し直していました（大きな book では何日も）。
+- `book leaf recalculate`（2・3・4）：同じく、計算し直した Leaf に印を付けて続きから計算します。
+- `book learn <ファイル>`：`<book-file>.learn`（`<book-file>.store` に保存した book に学習済みの行の数、その確かめの値、book の局面の数・level・深さ）を書き、同じファイルでこの book にもう一度実行すると、その行を飛ばします。最後まで学習すると消えます。
+- `book deepen`：level が book より浅い局面に book の level を与え、その level で探索し直します（これまでは局面の level のまま探索し直し、何も深くならず、もう一度実行すると全部をやり直していました）。
+- 名前：README・修正一覧・説明書で Heath（旧名 newedax）にしました。プログラムは、これまでどおり自分を Edax と名乗ります（GUI が使う通信の中）。前の版の名前（`v4.5.5-newedax.N`）は変わりません。
+
+**互換性**
+
+- 印は、局面の level の 1 バイトの上 2 ビットです（book のファイルの 2 つの形式とも）。大きさと形式は変わらず、印のない book は前と同じです。**`book correct`・`book leaf recalculate` が終わる前に保存された book には印があり、v4.5.5-newedax.15 までの版では壊れた book として読まれません。** 終わった book には印がありません。評価の道具（`tools/eval`）は、印を外して level を読みます。
+- 探索は変わりません：v4.5.5-newedax.15 と同じ評価値・ノード数・読み筋です。
+
+**確かめたこと**：`tests/book-resume.py`（41 項目。形式 2 も）、C 版の book の試験一式 14 組が v4.5.5-newedax.15 と同じ book（保存の日時のほか。時計の乱数で学習する組は `-book-seed 1` で）、`tests/regression.cpp`（54 項目）、2 つの組み立ての配布の実行ファイルが v4.5.5-newedax.15 と同じ評価値・ノード数・読み筋。
+
+[テストと実測の記録](docs/validation/newedax.ja.md#v455-heath16)
 
 ## v4.5.5-newedax.15
 

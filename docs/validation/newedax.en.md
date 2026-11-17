@@ -5,6 +5,17 @@ Tests and measurements done for each version, moved without changes from the for
 For what changed, see the [release notes](../../RELEASE-NOTES.md). "Above" and "below" in the text refer to positions in the former document.
 
 
+## v4.5.5-heath.16
+
+Checks:
+
+- `tests/book-resume.py` (new, 41 checks, one logical CPU): `book correct` with 1 and 2 threads (marked positions with a wrong score are not searched again, the marks go, a third run finds the wrong scores), `book deepen`, `book leaf recalculate3`, `book learn` (also a run stopped as soon as its progress file was written, then a new run on the book saved to `.store`), the marks kept by a book saved in form 2 and read again, and v4.5.5-newedax.15 reading a book with marks as a damaged book.
+- The 14 book suites of the C version (1 thread, without `book-reproducible`; the 64-slot build and `eval.dat`), with a build of this source and with v4.5.5-newedax.15: the same files except the save date in 13 suites; S3 (`book learn` with the random seed of the clock) differs from run to run, and with `-book-seed 1` both give the same books.
+- `tests/regression.cpp`: the 54 cases pass (64 slots, AVX-512).
+- The release programs (64 and 48 slots, with the `eval.dat` of their build, that of v4.5.5-newedax.13): in each build, the 5 Windows programs give at level 12 on 40 midgame positions the same values, node counts and lines as v4.5.5-newedax.15; fforum-20-39 (1 thread) the same scores and moves, and at `-l 60` 0 wrong move and 0 wrong score; the 1,205 positions of the fix of v4.5.5-newedax.15 at `-l 60`: 0 wrong score; `tests/cassio-eof.py` (7 cases) and `tests/nboard-ponder.py` pass; the 3 DLLs of each build pass the 281 API checks.
+- The eval tools: 16 programs built with `tools/eval/build-evtools.ps1` (x64 AVX-512, Boost 1.92).
+- Not checked: a real book, real Android devices, Windows ARM64.
+
 ## v4.5.5-newedax.15
 
 Checks:

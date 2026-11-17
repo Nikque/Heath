@@ -283,9 +283,9 @@ The `book leaf recalculate` family searches the leaves again and replaces their 
 - Each search runs at the level recorded in its position. The number of parallel searches follows `book-expand-tasks`.
 - The progress and the result are saved to `<book file name>.leaf`, `.leaf2`, `.leaf3`, `.leaf4`.
   - **A file saved partway is in the state "some leaves are updated, negamax not done yet"**. Run `book negamax` after loading it.
-  - **A book saved partway can be continued** (since the version after v4.5.5-newedax.15): see "Continuing a run that did not end" below.
+  - **A book saved partway can be continued** (since v4.5.5-heath.16): see "Continuing a run that did not end" below.
 
-### Continuing a run that did not end (since the version after v4.5.5-newedax.15)
+### Continuing a run that did not end (since v4.5.5-heath.16)
 
 Each recomputed leaf gets a **mark** in the book.
 
@@ -353,7 +353,7 @@ This re-searches the leaf of every position in the exact range (positions whose 
 
 - The number of corrections is shown as `error found`.
 - The progress is saved to `.err`.
-- **A book saved partway can be continued** (since the version after v4.5.5-newedax.15). Each position checked gets a mark. When a run stops before its end, load `.err` or the book saved at the exit with `book load`, and type `book correct` again: the marked positions are skipped, and only the others are searched. It first shows:
+- **A book saved partway can be continued** (since v4.5.5-heath.16). Each position checked gets a mark. When a run stops before its end, load `.err` or the book saved at the exit with `book load`, and type `book correct` again: the marked positions are skipped, and only the others are searched. It first shows:
 
 ```
 Correcting solved positions: 50000 already done by a run that did not end, 150000 left
@@ -368,7 +368,7 @@ On a correctly built book, this command should report `0 error found`. Use it wh
 
 ### book deepen: searching the positions of a lower level again with the level of the book
 
-The positions whose level searches less deep than the level of the book get the level of the book, and their leaves are searched again with it (since the version after v4.5.5-newedax.15).
+The positions whose level searches less deep than the level of the book get the level of the book, and their leaves are searched again with it (since v4.5.5-heath.16).
 
 - "Less deep": at the number of empty squares of the position, a smaller depth, or the same depth with more pruning (a lower selectivity).
 - The positions of a deeper level than the book are left as they are.

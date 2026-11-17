@@ -172,7 +172,7 @@ f5f4e3
 - 打てない手のある行は、警告が出て、学習されません。
 - 結果は `<book のファイル名>.store` に保存されます。
 
-**途中から続ける**（v4.5.5-newedax.15 の次の版から）：
+**途中から続ける**（v4.5.5-heath.16 から）：
 
 - `.store` に保存するたびに、`<book のファイル名>.learn` という小さなテキストファイルも書きます。中身は、棋譜のファイルの何行目まで学習したか、その行の中身の確かめの値、そのときの book の局面の数・level・深さです。
 - 途中で止まったとき（Edax を閉じた、PC が止まった など）は、`.store` か終了のときに保存された book を `book load` で読み、**同じ棋譜のファイルで** `book learn` をもう一度実行します。学習済みの行を飛ばし、残りの行だけを打って学習します。
@@ -441,6 +441,14 @@ Book play...1/153 done: 1 positions, 1 links
 - 起動してから `book load data/book.dat.dev2` を実行する。この場合も、自動の保存先は `book-file` です（[6.6](06-book-basics.md)の注意 2）。
 
 そのうえで、同じコマンド（`book deviate2 5 5` など）をもう一度実行します。
+
+同じコマンドで続けたとき、済んだ所をもう一度探索するかどうか：
+
+- `book deviate` 系・`book enhance`・`book leaf expand`・`book fill`・`book fill2`・`book play`・`book add`：広げた手や足した局面は book に残っているので、済んだ所は探索し直しません（たどり直す手間だけかかります）。
+- `book correct`・`book leaf recalculate` 系：探索し直した局面に book の中で印が付き、印のない局面だけを探索します（v4.5.5-heath.16 から。[8.6](08-book-maintenance.md)・[8.7](08-book-maintenance.md)）。印の付いた途中の book は、v4.5.5-newedax.15 までの版では読めません。
+- `book learn <ファイル>`：`<book のファイル名>.learn` に学習した行の数が書かれ、同じファイルなら学習済みの行を飛ばします（v4.5.5-heath.16 から。[7.2](07-book-learning.md) の book learn）。
+- `book deepen`：book の level にした局面は探索し直しません（v4.5.5-heath.16 から。[8.7](08-book-maintenance.md)）。
+- v4.5.5-newedax.15 までの版では、`book correct`・`book leaf recalculate` 系・`book learn`・`book deepen` は、続けても最初から全部をやり直していました。
 
 ## 7.6 同時に広げる：book-expand-tasks
 
