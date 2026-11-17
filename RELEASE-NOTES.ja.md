@@ -1,8 +1,8 @@
-# newedax 修正一覧
+# Heath（旧名 newedax）修正一覧
 
 [English](RELEASE-NOTES.md) · [README](README.md) · [マニュアル](manual/ja/README.md) · [テストと実測の記録](docs/validation/newedax.ja.md)
 
-newedax（C 版 Edax 4.5.5 nikque の eval2 系列を C++23 に移したもの）の、版ごとの使う人に関わる変更点です。テストと実測の詳しい記録は、各版の末尾のリンク先にあります。
+Heath（旧名 newedax。C 版 Edax 4.5.5 nikque の eval2 系列を C++23 に移したもの）の、版ごとの使う人に関わる変更点です。テストと実測の詳しい記録は、各版の末尾のリンク先にあります。
 
 C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.ja.md) を見てください。
 
@@ -10,7 +10,7 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 
 各版は、同じ行の C 版の変更をすべて含みます。
 
-| newedax | C 版（nikque） | C 版（eval2） |
+| Heath（newedax） | C 版（nikque） | C 版（eval2） |
 |---|---|---|
 | newedax.15 | nikque.28 | eval2.16 |
 | newedax.14 | nikque.27 | eval2.15 |

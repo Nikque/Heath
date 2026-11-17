@@ -17,6 +17,8 @@ Toshihiko Okuhara 氏が、新しい CPU の命令セット（AVX2・AVX-512 な
 
 book のファイル形式は元の Edax 4.5.5 と同じで、元の Edax の book はそのまま読めます。評価データ（`eval.dat`）は違います。v4.5.5-newedax.13 から評価関数は 64 枠（48 枠の版では 48 枠）になり、それぞれの版は Release の ZIP に入っている `eval.dat` を読みます。元の Edax と eval2 の `eval.dat` は使えません（警告を出して読みますが、評価が正しくなりません）。
 
+**Heath（旧名 newedax）**は、この修正版の eval2 の系列を C++23 に移したものです。v4.5.5-newedax.15 までの版の名前は `v4.5.5-newedax.N` です。
+
 版ごとの変更点は、配布版の `RELEASE-NOTES.ja.md` にあります。このマニュアルは使い方の説明です。
 
 ## 1.2 Edax でできること

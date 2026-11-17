@@ -1,4 +1,4 @@
-# newedax: tests and measurements
+# Heath (formerly newedax): tests and measurements
 
 Tests and measurements done for each version, moved without changes from the former README-NIKQUE.en.md.
 

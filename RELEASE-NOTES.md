@@ -1,8 +1,8 @@
-# newedax release notes
+# Heath (formerly newedax) release notes
 
 [日本語](RELEASE-NOTES.ja.md) · [README](README.md) · [Manual](manual/en/README.md) · [Tests and measurements](docs/validation/newedax.en.md)
 
-User-facing changes of each version of newedax (the eval2 line of the C Edax 4.5.5 nikque, ported to C++23). Detailed test and measurement records are linked at the end of each entry.
+User-facing changes of each version of Heath (formerly newedax: the eval2 line of the C Edax 4.5.5 nikque, ported to C++23). Detailed test and measurement records are linked at the end of each entry.
 
 For the details of changes taken from the C version, see the [C release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md).
 
@@ -10,7 +10,7 @@ For the details of changes taken from the C version, see the [C release notes](h
 
 Each version contains all changes of the C versions on the same row.
 
-| newedax | C (nikque) | C (eval2) |
+| Heath (newedax) | C (nikque) | C (eval2) |
 |---|---|---|
 | newedax.15 | nikque.28 | eval2.16 |
 | newedax.14 | nikque.27 | eval2.15 |
