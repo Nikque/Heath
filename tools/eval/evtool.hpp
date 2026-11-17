@@ -300,7 +300,7 @@ inline bool book_reader_next(BookReader *r, BookRecord *p)
 		int16_t v[3];
 		memcpy(&p->P, h, 8); memcpy(&p->O, h + 8, 8); memcpy(v, h + 32, 6);
 		p->value = v[0]; p->lower = v[1]; p->upper = v[2];
-		p->n_link = h[38]; p->level = h[39];
+		p->n_link = h[38]; p->level = h[39] & 0x3f;	// (the two upper bits: progress marks of book correct and book leaf recalculate)
 		p->leaf_score = (signed char) h[40 + 2 * p->n_link]; p->leaf_move = h[40 + 2 * p->n_link + 1];
 		book_reader_take(r, 40 + 2 * (p->n_link + 1));
 	} else {	// board (16), n_link, level, value, lower, upper, leaf score, leaf move; 4 counts (LEB128); links
@@ -308,7 +308,7 @@ inline bool book_reader_next(BookReader *r, BookRecord *p)
 		const size_t left = r->n - r->pos;
 		if (left < 23 + 4) die("%s is truncated", r->file);
 		memcpy(&p->P, h, 8); memcpy(&p->O, h + 8, 8);
-		p->n_link = h[16]; p->level = h[17];
+		p->n_link = h[16]; p->level = h[17] & 0x3f;	// (the two upper bits: progress marks of book correct and book leaf recalculate)
 		p->value = (signed char) h[18]; p->lower = (signed char) h[19]; p->upper = (signed char) h[20];
 		p->leaf_score = (signed char) h[21]; p->leaf_move = h[22];
 		size_t k = 23;
