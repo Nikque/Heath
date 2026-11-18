@@ -33,52 +33,80 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 
 ## v4.5.5-heath.16
 
-**Heath（旧名 newedax）の名前での最初の版です。リポジトリは `Nikque/Heath` になりました（前のアドレスからも移ります）。`book correct`・`book leaf recalculate`・`book learn` が、途中で保存された book から続けられるようになり、`book deepen` が働くようになりました。** C 版 v4.5.5-nikque.29・v4.5.5-eval2.17 の変更です。探索・評価関数とその `eval.dat`（v4.5.5-newedax.13 のもの。この版の ZIP に入っています）は変わりません。
+Heath（旧名 newedax）の名前での最初の版です。`book correct`・`book leaf recalculate`・`book learn` が途中で保存された book から続けられるようになり、`book deepen` が働くようになりました。
 
 **変更**
 
-- `book correct`：確かめ直した完全読みの局面に book の中で印を付けます。途中で保存された book（`<book-file>.err`、終了のときの保存）でもう一度実行すると、印のない局面だけを探索し、全部終わると印をすべて外します。v4.5.5-newedax.15 までは、もう一度実行すると全部を最初から探索し直していました（大きな book では何日も）。
-- `book leaf recalculate`（2・3・4）：同じく、計算し直した Leaf に印を付けて続きから計算します。
-- `book learn <ファイル>`：`<book-file>.learn`（`<book-file>.store` に保存した book に学習済みの行の数、その確かめの値、book の局面の数・level・深さ）を書き、同じファイルでこの book にもう一度実行すると、その行を飛ばします。最後まで学習すると消えます。
-- `book deepen`：level が book より浅い局面に book の level を与え、その level で探索し直します（これまでは局面の level のまま探索し直し、何も深くならず、もう一度実行すると全部をやり直していました）。
-- 名前：README・修正一覧・説明書で Heath（旧名 newedax）にしました。プログラムは、これまでどおり自分を Edax と名乗ります（GUI が使う通信の中）。前の版の名前（`v4.5.5-newedax.N`）は変わりません。
+- book の 4 つのコマンドの変更は、C 版 v4.5.5-nikque.29・v4.5.5-eval2.17 の変更です（[C 版の修正一覧](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.ja.md#v455-nikque29)）。
+- `book correct`：確かめ直した完全読みの局面に、book の中でマークを付けます。
+- 途中で保存された book（`<book-file>.err`、終了のときの保存）で `book correct` をもう一度実行すると、マークのない局面だけを探索します。全部終わると、マークをすべて外します。
+- v4.5.5-newedax.15 までの `book correct` は、もう一度実行すると全部を最初から探索し直していました（大きな book では何日もかかります）。
+- `book leaf recalculate`（2・3・4）：同じく、計算し直した Leaf にマークを付け、続きから計算します。
+- `book learn <ファイル>`：`<book-file>.learn` を書きます。中身は、`<book-file>.store` に保存した book に学習済みの行の数、その確かめの値、book の局面の数・level・深さです。
+- 同じファイルでこの book に `book learn` をもう一度実行すると、学習済みの行を飛ばします。最後まで学習すると `<book-file>.learn` は消えます。
+- `book deepen`：level が book より浅い局面に book の level を与え、その level で探索し直します。これまでは局面の level のまま探索し直していたため、何も深くならず、もう一度実行すると全部をやり直していました。
+- 名前：README・修正一覧・マニュアルで Heath（旧名 newedax）にしました。リポジトリは `Nikque/Heath` になりました（前のアドレスからも移ります）。
+- プログラムは、これまでどおり自分を Edax と名乗ります（GUI が使う通信の中）。前の版の名前（`v4.5.5-newedax.N`）は変わりません。
 
 **互換性**
 
-- 印は、局面の level の 1 バイトの上 2 ビットです（book のファイルの 2 つの形式とも）。大きさと形式は変わらず、印のない book は前と同じです。**`book correct`・`book leaf recalculate` が終わる前に保存された book には印があり、v4.5.5-newedax.15 までの版では壊れた book とみなされ、読み込めません。** 終わった book には印がありません。評価の道具（`tools/eval`）は、印を外して level を読みます。
-- 探索は変わりません：v4.5.5-newedax.15 と同じ評価値・ノード数・読み筋です。
+- マークは、局面の level の 1 バイトの上 2 ビットです（book のファイルの 2 つの形式とも）。ファイルの大きさと形式は変わりません。マークのない book は前と同じです。
+- **`book correct`・`book leaf recalculate` が終わる前に保存された book にはマークがあり、v4.5.5-newedax.15 までの版では壊れた book とみなされ、読み込めません。** 終わった book にはマークがありません。
+- 評価のツール（`tools/eval`）は、マークを外して level を読みます。
+- 探索は変わりません。v4.5.5-newedax.15 と同じ評価値・ノード数・読み筋です。
+- 評価関数とその `eval.dat` は変わりません（v4.5.5-newedax.13 のもの。この版の ZIP に入っています）。
 
-**確かめたこと**：`tests/book-resume.py`（41 項目。形式 2 も）、C 版の book の試験一式 14 組が v4.5.5-newedax.15 と同じ book（保存の日時のほか。時計の乱数で学習する組は `-book-seed 1` で）、`tests/regression.cpp`（54 項目）、2 つの組み立ての配布の実行ファイルが v4.5.5-newedax.15 と同じ評価値・ノード数・読み筋。
+**未確認**：実際の大きな book、Android の実機、Windows ARM64。
 
-[テストと実測の記録](docs/validation/newedax.ja.md#v455-heath16)
+[検証記録](docs/validation/newedax.ja.md#v455-heath16)
+
+---
 
 ## v4.5.5-newedax.15
 
-**完全読みの直し：空き 17 マス以上の level 60 で、まれに評価値（と手）を誤っていました。** ほかの探索・評価関数とその `eval.dat`（v4.5.5-newedax.13 のもの。この版の ZIP に入っています）・book は変わりません。
+完全読みの不具合を直しました。空き 17 マス以上の level 60 で、まれに評価値（と手）を誤っていました。
 
-**直したこと**
+**不具合の修正**
 
-- 完全読み（深さが空きマス数で選択なしの level）は、まず選択あり（probcut）で読み、その後に完全に読みます。その間、中盤の探索で終盤の探索に移る深さ（`DEPTH_MIDGAME_TO_ENDGAME`、空き 15）の節を、子が終盤の探索で読まれるので正確な値として置換表に残していました。その節がパスのときは、相手の探索が中盤の探索の同じ深さのまま続き、probcut で打ち切られることがあります。その値が正確な値として残り、完全な読みの反復で使われて、根の評価値と手を誤ることがありました（誤りはいつも数石）。新しい `eval.dat` の学習データでは、空き 17 マスの完全読みの 10 万回に 1〜2 回ほど誤っていました（1 スレッドでも 4 スレッドでも、置換表の大きさによらず、同じ局面で毎回）。パスの節は、読みの選択の強さのまま残すようにしました。
-- 同じ誤りは C 版（v4.5.5-nikque.27・v4.5.5-eval2.15。v4.5.5-nikque.28・v4.5.5-eval2.16 で直しました）と、その元の奥原俊彦氏の Edax 4.5.5・4.5.6（edax-reversi-AVX）にもあります。Richard Delorme 氏の Edax 4.6・4.7 にはありません。
+- 完全読み（深さが空きマス数で、選択なしの level）で、根の評価値と手を誤ることがありました（誤りはいつも数石）。
+- 新しい `eval.dat` の学習データでは、空き 17 マスの完全読みの 10 万回に 1〜2 回ほど誤っていました。1 スレッドでも 4 スレッドでも、置換表の大きさによらず、同じ局面で毎回誤ります。
+- 原因：完全読みは、まず選択あり（probcut）で読み、その後に完全に読みます。その間、中盤の探索で終盤の探索に移る深さ（`DEPTH_MIDGAME_TO_ENDGAME`、空き 15）の節を、正確な値として置換表に残していました（子が終盤の探索で読まれるため）。
+- その節がパスのときは、相手の探索が中盤の探索の同じ深さのまま続き、probcut で打ち切られることがあります。その値が正確な値として残り、完全な読みの反復で使われていました。
+- パスの節は、読みの選択の強さのまま残すようにしました。
+- 同じ誤りは C 版（v4.5.5-nikque.27・v4.5.5-eval2.15）にもあり、v4.5.5-nikque.28・v4.5.5-eval2.16 で直しました（[C 版の修正一覧](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.ja.md#v455-nikque28)）。
+- その元の奥原俊彦氏の Edax 4.5.5・4.5.6（edax-reversi-AVX）にもあります。Richard Delorme 氏の Edax 4.6・4.7 にはありません。
 
 **互換性**
 
-- 正しかった完全読みの評価値は変わりません。ノード数は少し変わります（空き 17〜22 マスの 1,640 局面で 0.01% 増）。終盤の深さを含まない中盤の探索は変わりません。
+- 正しかった完全読みの評価値は変わりません。
+- ノード数は少し変わります（空き 17〜22 マスの 1,640 局面で 0.01% 増）。
+- 終盤の深さを含まない中盤の探索は変わりません。
 - 前の版で完全読みした局面を含む book には、まれにこの誤りの値が入っていることがあります。
+- ほかの探索・評価関数とその `eval.dat`（v4.5.5-newedax.13 のもの。この版の ZIP に入っています）・book は変わりません。
 
-**確かめたこと**：完全読みの評価値を誤っていた 1,205 局面（ほとんどが空き 17 マス。別の解き方の値と比べた）が、1・4 スレッド、置換表 2^20・2^24 ですべて正しくなりました。配る組み立ての確かめは下の記録にあります。
+**未確認**：Android の実機、Windows ARM64。
 
-[テストと実測の記録](docs/validation/newedax.ja.md#v455-newedax15)
+[検証記録](docs/validation/newedax.ja.md#v455-newedax15)
+
+---
 
 ## v4.5.5-newedax.14
 
-**NBoard で相手の時間にも考えるようにし、置換表を手から手へ残せるようにしました。** 2 つの設定で、どちらも指定しなければ切っています。`-ponder on` で NBoard のプロトコルが相手の時間にも考え、`-keep-hash on` で、新しい盤が同じ対局の続きのときに置換表を残します。探索・評価関数・`eval.dat`（v4.5.5-newedax.13 のもの。この版の ZIP に入っています）・book は変わりません。これらを指定しなければ、手と評価値は v4.5.5-newedax.13 と同じです。
+NBoard で相手の時間にも考えられるようにし、置換表を手から手へ残せるようにしました。どちらも新しい設定で、指定しなければ切っています。
 
-**変更点**
+**変更**
 
-- NBoard、`-ponder on`（または `set ponder on`）：Edax の `go` の手を GUI が `move` で返すと、Edax は相手の時間に考えます。相手の手を（直前の探索から）予想し、その後の局面を探索します。相手の手が `move`、またはその後の局面の `set game` で来て、予想と同じなら、その探索を続けます（次の `go` が続きを使います）。違う手なら止め、`go` はこれまでどおり探索します。`ping` は相手の番の思考を止めず、`go` の探索はこれまでどおり止めます。`go` の直後、探索が始まる前に来た `ping` でも止まるようにしました（v4.5.5-newedax.13 までは、この止めが失われ、探索が自分の限りまで続きました）。`-ponder on` を指定しないと、NBoard ではこれまでどおり考えません（`ponder` はほかのプロトコルのため既定が on なので、NBoard では指定したときだけ効きます）。
-- `-keep-hash on`（または `keep-hash on`、NBoard では `set keep-hash on`。既定は off）：新しい盤が同じ対局の続き（前の盤で石のあるマスに、新しい盤でもすべて石がある）なら、置換表を残します。NBoard の `set game`、Edax のプロトコルの `setboard` と FEN、libedax の盤に効きます。v4.5.5-newedax.13 までは、そのたびに置換表を消していました（記録がすべて無効になっていました）。そのため、手ごとに盤を送る GUI では毎手が空の表からの探索になり、人の番の探索（nikque GUI の「相手の番にも考える」）も次の手に生きていませんでした。NBoard では、相手の番に考えた局面が来たときは、この設定によらず残します。
-- `-ponder on -keep-hash on` で NBoard を使う GUI の命令の並び：
+- `-ponder on`（または `set ponder on`）：NBoard のプロトコルで、相手の時間にも考えます。
+  - Edax の `go` の手を GUI が `move` で返すと、Edax は相手の時間に考えます。相手の手を（直前の探索から）予想し、その後の局面を探索します。
+  - 相手の手が `move`、またはその後の局面の `set game` で来て、予想と同じなら、その探索を続けます（次の `go` が続きを使います）。違う手なら止め、`go` はこれまでどおり探索します。
+  - `ping` は相手の番の思考を止めません。`go` の探索は、これまでどおり止めます。
+  - `-ponder on` を指定しないと、NBoard ではこれまでどおり考えません。`ponder` はほかのプロトコルのため既定が on なので、NBoard では指定したときだけ効きます。
+- `-keep-hash on`（または `keep-hash on`、NBoard では `set keep-hash on`。既定は off）：新しい盤が同じ対局の続きなら、置換表を残します。
+  - 同じ対局の続きとは、前の盤で石のあるマスに、新しい盤でもすべて石があることです。
+  - NBoard の `set game`、Edax のプロトコルの `setboard` と FEN、libedax の盤に効きます。
+  - v4.5.5-newedax.13 までは、新しい盤のたびに置換表を消していました（記録がすべて無効になっていました）。そのため、手ごとに盤を送る GUI では毎手が空の表からの探索になり、人の番の探索（nikque GUI の「相手の番にも考える」）も次の手に生きていませんでした。
+  - NBoard では、相手の番に考えた局面が来たときは、この設定によらず置換表を残します。
+- `-ponder on -keep-hash on` で NBoard を使う GUI のコマンドの並び：
 
 ```
 nboard 1
@@ -92,35 +120,49 @@ set game <GGF>         相手の手の後の局面（または move <相手の�
 go                     → 相手が予想した手を打ったときは、相手の番に始めた探索を続ける
 ```
 
-- テスト：`tests/nboard-ponder.py`（上のことを `-info` の標準エラーで確かめる 57 項目）。
+- 新しいテスト `tests/nboard-ponder.py`：この版の変更を `-info` の標準エラーで確かめます。
 - マニュアル：設定 `ponder` と `keep-hash`（4.6、14）、NBoard での相手の番の思考（12.1）。
+
+**不具合の修正**
+
+- NBoard の `go` の直後、探索が始まる前に来た `ping` でも、探索が止まるようにしました。v4.5.5-newedax.13 までは、この止めが失われ、探索が自分の限りまで続きました。
 
 **互換性**
 
-- `-ponder on` と `-keep-hash on` を指定しなければ、答えは v4.5.5-newedax.13 と同じです（上の、`go` の直後の `ping` の止めのほか）。
+- `-ponder on` と `-keep-hash on` を指定しなければ、答えは v4.5.5-newedax.13 と同じです。違うのは、`go` の直後の `ping` で探索が止まることだけです。
 - `-keep-hash on` では、前の手の探索で見つけたものを使うので、評価値やノード数は空の表からの探索と同じになりません。
-- NBoard で `-ponder on` にすると、相手の時間にもスレッドを使います。同じ CPU でほかのエンジンを動かすときは、その時間を取ります。
+- NBoard で `-ponder on` にすると、相手の時間にもスレッドを使います。同じ CPU でほかのエンジンを動かすときは、そのエンジンの時間を取ります。
+- 探索・評価関数・`eval.dat`（v4.5.5-newedax.13 のもの。この版の ZIP に入っています）・book は変わりません。
 
-**確かめたこと**：下のテストの記録を見てください。`tests/nboard-ponder.py` の項目と、配布のプログラムが v4.5.5-newedax.13 と同じ結果とノード数になることです。
+**未確認**：相手の番の思考のありとなしの強さ（この版では対局していません）、NBoard の GUI そのもの、Android の実機、Windows ARM64。
 
-**確かめていないこと**：相手の番の思考のありとなしの強さ（この版では対局していません）、NBoard の GUI そのもの、Android の実機、Windows ARM64。
+[検証記録](docs/validation/newedax.ja.md#v455-newedax14)
 
-[テストと実測の記録](docs/validation/newedax.ja.md#v455-newedax14)
+---
 
 ## v4.5.5-newedax.13
 
-**新しい評価関数：64 枠で学習し直したものと、48 枠の版。** 配布物は 2 つです。`edax-4.5.5-newedax.13-64.zip`（既定の 64 枠）と `edax-4.5.5-newedax.13-48.zip`（48 枠：64 枠から形を 2 つ外したもの。1 節点あたりが速い）。それぞれに専用の `eval.dat`（107,612,578 バイト）が入っています。リポジトリの `bin/data` に残っている eval2 の `eval.dat` は、これらの版には使えません。同じ持ち時間（1 局 30 秒ずつ）で、64 枠の版は eval2（v4.5.5-newedax.12）に **+60.2 Elo**（95%：+47.9〜+72.6）、Egaroucid（大会用の枝、1 局 120 秒、8 スレッド）に **+23.2 Elo**（+3.0〜+43.6）でした。ProbCut の既定は `refit` になりました。
+新しい評価関数にしました。64 枠で学習し直したもの（既定）と、48 枠の版の 2 つです。64 枠の版は、同じ持ち時間で eval2（v4.5.5-newedax.12）に +60.2 Elo でした。
 
-**変更点**
+**変更**
 
-- 評価関数（既定の版、`EVAL_SLOTS` 64）：Edax 4.5 の 13 群と追加の 13 群（`M X W C`、3^10 マスまたは 3^9 の重み）、15 個の形と着手可能数の重みを 64 枠に置きました。形は 2026-11-05〜11-13 に、評価の誤差と Lv18・Lv24 の対局で探しました（形とマスは下の表）。重みは `tools/eval/evsearch`（手数 2〜53）で学習し直しました。
-- 48 枠の版（`EVAL_SLOTS=48`）：64 枠と同じソース・同じ形式の `eval.dat` で、形 `cxd10` と `edw10`（16 枠）を外したもの（特徴の差分更新は 256 ビットのベクトル 4 本のかわりに 3 本）。重みはこの 2 つを外して学習しました。同じ時間で約 11% 多く読みますが、評価の落ちのほうが大きく、同じ時間で 64 枠に −12.1 Elo（−17.3〜−6.9）でした。
-- `EVAL_SLOTS` 48 は eval2 の意味ではなくなりました。eval2 の評価関数（46 パターン）は組み立てられません。
-- ProbCut：既定を `refit` にしました（`-probcut-model refit`、`bin/config.ini` の `probcut-model = refit`）。この重みで `standard` と比べた結果：64 枠で `standard` は −1.0 Elo（−5.9〜+3.8、4,378 局）、48 枠で −7.7（−14.8〜−0.7、2,204 局）。
-- 探索：待っているスレッドが眠る前に見回るようにし、深さ 9 から分けます。AVX-512 の版は、手数ごとの重みを 1 つの表から 1 つずつ読みます。
-- 道具（`tools/eval`）：`evshape`、`evsearch -mute`・`-method sd`、`w2dat2 -interp` と追加の群、`selfplay3 -h`、`selfplay3` と `label` の探索の refit、`pcsigma`。
+- 配布版は 2 つの ZIP です。
+  - `edax-4.5.5-newedax.13-64.zip`：既定の 64 枠。
+  - `edax-4.5.5-newedax.13-48.zip`：48 枠。64 枠から形を 2 つ外したもので、1 節点あたりが速くなります。
+  - それぞれに専用の `eval.dat`（107,612,578 バイト）が入っています。
+- 評価関数（既定の版、`EVAL_SLOTS` 64）：Edax 4.5 の 13 群と追加の 13 群（`M X W C`、3^10 マスまたは 3^9 の重み）、15 個の形、着手可能数の重みを 64 枠に置きました。
+- 形は 2026-11-05〜11-13 に、評価の誤差と Lv18・Lv24 の対局で探しました（形とマスは次の表）。
+- 重みは `tools/eval/evsearch`（手数 2〜53）で学習し直しました。
+- 48 枠の版（`EVAL_SLOTS=48`）：64 枠と同じソース・同じ形式の `eval.dat` で、形 `cxd10` と `edw10`（16 枠）を外したものです。重みはこの 2 つを外して学習しました。
+- 48 枠の版の特徴の差分更新は、256 ビットのベクトル 4 本のかわりに 3 本です。同じ時間で約 11% 多く読みますが、評価の落ちのほうが大きく、同じ時間で 64 枠に −12.1 Elo（−17.3〜−6.9）でした。
+- `EVAL_SLOTS` 48 は eval2 の意味ではなくなりました。eval2 の評価関数（46 パターン）はビルドできません。
+- ProbCut：既定を `refit` にしました（`-probcut-model refit`、`bin/config.ini` の `probcut-model = refit`）。
+- 探索：待っているスレッドが眠る前に見回るようにし、深さ 9 から分けます。
+- AVX-512 の版は、手数ごとの重みを 1 つの表から 1 つずつ読みます。
+- ツール（`tools/eval`）：`evshape`、`evsearch -mute`・`-method sd`、`w2dat2 -interp` と追加の群、`selfplay3 -h`、`selfplay3` と `label` の探索の refit、`pcsigma`。
 - 評価ファイル：64 枠・48 枠の版は、追加の群の重みの無いファイル（eval2 や Edax 4.5 の `eval.dat`）を読むと警告を出します。
-- 試験（`tests/regression.cpp`）：`evalslots` が AVX-512 の版の表も読み、ファイルの追加の群の重みを数に入れ、差分更新をすべての枠で確かめるようにしました。形式 1 のファイルの試し（`evalform2`・`evalform2mob`・`evalbadconv`・`evalmobility`）は、形式 2 の `eval.dat` の Edax 4.5 の 13 群から形式 1 のファイルを作って使います。
+- テスト（`tests/regression.cpp`）：`evalslots` が AVX-512 の版の表も読み、ファイルの追加の群の重みを数に入れ、差分更新をすべての枠で確かめるようにしました。
+- テスト（`tests/regression.cpp`）：形式 1 のファイルのテスト（`evalform2`・`evalform2mob`・`evalbadconv`・`evalmobility`）は、形式 2 の `eval.dat` の Edax 4.5 の 13 群から形式 1 のファイルを作って使います。
 
 64 枠の形（枠：使う像の数）：
 
@@ -141,6 +183,9 @@ go                     → 相手が予想した手を打ったときは、相�
 | `d3e10` | c1 b2 e2 a3 g4 b5 h6 d7 g7 f8 | 2 |
 | `cxd10`（48 枠には無い） | c1 d1 g1 h1 b2 d2 f2 g2 h2 f3 | 8 |
 | `edw10`（48 枠には無い） | g5 f6 e7 f7 g7 d8 e8 f8 g8 h8 | 8 |
+
+<details>
+<summary>形の図（15 個）</summary>
 
 形の図（X が形のマス、. が空きのマス。表のマスの並びのとおり 1 枠目の向き）：
 
@@ -354,15 +399,11 @@ go                     → 相手が予想した手を打ったときは、相�
 8 . . . X X X X X
 ```
 
-**互換性**
+</details>
 
-- 探索の結果は変わります（評価関数と ProbCut の既定）。book の形式は変わりません。前の版で学習した book は読めますが、その値は前の評価関数でつけたものです。
-- `eval.dat`：それぞれの版の `eval.dat` は配布物の ZIP（`bin/data/eval.dat`）にあり、git にはありません。リポジトリから組み立てた版にも必要です。`bin/data` の eval2 の `eval.dat` と Edax 4.5 の `eval.dat` は、64 枠・48 枠の版には使えません（警告を出して読みますが、評価が正しくなりません）。
-- 64 枠と 48 枠の `eval.dat` は同じ形式ですが、それぞれ自分の版のためのものです。
-- libedax：API は v4.5.5-newedax.12 と同じです。ライブラリを同梱するプログラムは、同じ版の `eval.dat` も同梱してください。
-- `-probcut-model standard` で、前の ProbCut の形になります。
+**強さ**
 
-**測った結果**（64 枠の版、refit、PGO の組。B が新しい版、95% の幅）：
+64 枠の版（refit、PGO の組）の対局です。Elo は新しい版から見た値で、かっこは 95% の幅です。
 
 | 相手 | 条件 | 局数 | Elo |
 |---|---|---|---|
@@ -372,31 +413,52 @@ go                     → 相手が予想した手を打ったときは、相�
 | Egaroucid（大会用の枝 `dev-lazysmp-ggs-b`） | 1 局 120 秒、8 スレッド | 180 | +23.2（+3.0〜+43.6） |
 | 48 枠の版（refit） | 1 局 30 秒ずつ | 4,378 | +12.1（+6.9〜+17.3） |
 
-**確かめていないこと**：Android の実機、Windows ARM64、book の速さ、Windows の MSVC と Android の NDK 以外での組み立て。
+- ProbCut：この重みで `refit` を `standard` と比べた結果、64 枠で `standard` は −1.0 Elo（−5.9〜+3.8、4,378 局）、48 枠で −7.7（−14.8〜−0.7、2,204 局）でした。
 
-[試験と測定](docs/validation/newedax.ja.md#v455-newedax13)
+**互換性**
+
+- 探索の結果は変わります（評価関数と ProbCut の既定）。`-probcut-model standard` で、前の ProbCut の形になります。
+- book の形式は変わりません。前の版で学習した book は読めますが、その値は前の評価関数でつけたものです。
+- `eval.dat`：それぞれの版の `eval.dat` は Release の ZIP（`bin/data/eval.dat`）にあり、git にはありません。リポジトリからビルドした版にも必要です。
+- リポジトリの `bin/data` に残っている eval2 の `eval.dat` と、Edax 4.5 の `eval.dat` は、64 枠・48 枠の版には使えません（警告を出して読みますが、評価が正しくなりません）。
+- 64 枠と 48 枠の `eval.dat` は同じ形式ですが、それぞれ自分の版のためのものです。
+- libedax：API は v4.5.5-newedax.12 と同じです。ライブラリを同梱するプログラムは、同じ版の `eval.dat` も同梱してください。
+
+**未確認**：Android の実機、Windows ARM64、book の速さ、Windows の MSVC と Android の NDK 以外でのビルド。
+
+[検証記録](docs/validation/newedax.ja.md#v455-newedax13)
+
+---
 
 ## v4.5.5-newedax.12
 
-C 版と同じく、起動のときにほかのプログラムが開いていた book のファイルを、壊れたものとして置き換えることがなくなりました。見直しで見つけたほかの不具合も直し、動きを変えずにコードを整理しました。評価の道具（`tools/eval`）は、長すぎるファイル名とメモリの確保の失敗を、誤りとして止めます。
+C 版と同じく、起動のときにほかのプログラムが開いていた book のファイルを、壊れたものとして置き換えることがなくなりました。見直しで見つけたほかの不具合も直し、動きを変えずにコードを整理しました。
 
 **変更**
 
-- C 版 v4.5.5-nikque.27 の変更を取り込みました（[C 版の修正一覧](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.ja.md#v455-nikque27)）：起動のときに開けない book のファイルは 2 秒ほど待って開き直し、それでも開けなければそのファイルには保存しない（`.damaged` も作らない）こと、読めなかった book のファイルの印、libedax の `edax_book_file_status`、`book import`・`book merge`・`book deviate` の仲間の `export`・`book moveinfo`・`book reducecount`・時間の `5:`・`config.ini` の場所・`weval` の表と統計・libedax などの直し、動きを変えないコードの整理。
-- 評価の道具（`tools/eval`）：フォルダーの名前から作るファイルの名前が入れ物に収まらないときは、`file name too long` と出して終了コード 1 で止まります（10 本の 22 か所。前は入れ物の外に書き、`sprepair`・`bookdump`・`w2dat2` は落ちるか、壊れた名前で続けていました）。`leafgen`・`w2dat2` は、メモリを確保できないときに `out of memory` で止まります。ファイルを開けないとき・メモリが足りないときの止め方を、同じ関数（`xfopen`・`xmalloc`・`xcalloc`・`die`）にまとめました（文と終了コードは同じ）。
-- 試験：`tests/libedax_test.c` は 281 項目（61 項目増。うち 28 項目は Windows だけ）、`tests/book-analyze.cpp` は 3 つ増、`tests/regression.cpp` は C 版と同じ場面を足しました。`tests/regression.cpp` の `evalmobility` は、移動力の重みを持つ newedax の `eval.dat` でも通ります（移動力の重みのない評価のファイルを、61 手の重みだけを書いて作ります。前は、その `eval.dat` では必ず失敗していました）。
-- 手引き：4.1・6.6・7.3・8.4・8.5・12.2・12.4・13.1 に書きました（C 版と同じ文。12.2 の試験の項目数のほか）。
+- C 版 v4.5.5-nikque.27 の変更を取り込みました（[C 版の修正一覧](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.ja.md#v455-nikque27)）。
+  - 起動のときに開けない book のファイルは、2 秒ほど待って開き直します。それでも開けなければ、そのファイルには保存しません（`.damaged` も作りません）。
+  - libedax に `edax_book_file_status` を足しました。
+  - 動きを変えずにコードを整理しました。
+- 評価のツール（`tools/eval`）：ファイルを開けないとき・メモリが足りないときの止め方を、同じ関数（`xfopen`・`xmalloc`・`xcalloc`・`die`）にまとめました（文と終了コードは同じ）。
+- テスト：`tests/libedax_test.c`・`tests/book-analyze.cpp`・`tests/regression.cpp` に項目を足しました。
+- マニュアル：4.1・6.6・7.3・8.4・8.5・12.2・12.4・13.1 に書きました（C 版と同じ文。12.2 のテストの項目数のほか）。
+
+**不具合の修正**
+
+- C 版 v4.5.5-nikque.27 と同じ直し：読めなかった book のファイルの印、`book import`、`book merge`、`book deviate` の仲間の `export`、`book moveinfo`、`book reducecount`、時間の `5:`、`config.ini` の場所、`weval` の表と統計、libedax など。
+- 評価のツール：フォルダーの名前から作るファイルの名前が入れ物に収まらないとき、前は入れ物の外に書いていました。`sprepair`・`bookdump`・`w2dat2` は、落ちるか、壊れた名前で続けていました。今は `file name too long` と出して、終了コード 1 で止まります（10 本の 22 か所）。
+- 評価のツール：`leafgen`・`w2dat2` は、メモリを確保できないときに `out of memory` で止まります。
+- `tests/regression.cpp` の `evalmobility` は、前は移動力の重みを持つ newedax の `eval.dat` では必ず失敗していました。今は通ります（移動力の重みのない評価のファイルを、61 手の重みだけを書いて作ります）。
 
 **互換性**
 
 - 探索の結果・`eval.dat`・book のファイル形式は変わりません。
-- 答えが v4.5.5-newedax.11 と違うのは、上の場合だけです。book のエラーの文に入るソースの行番号は変わりました。
+- 答えが v4.5.5-newedax.11 と違うのは、この版で直した場合だけです。book のエラーの文に入るソースの行番号は変わりました。
 - libedax：設定の book のファイルを起動のときに開けなかったときは、どの保存もそのファイルを置き換えません（`edax_book_save_checked`・`edax_book_keep_unread_file` は 0）。book を自分で保存するプログラムは、初期化の後に `edax_book_file_status` を確かめてください。
-- 評価の道具は、長すぎる名前のときのほかは、newedax.11 の道具と同じ入力で同じ出力です。
+- 評価のツールは、長すぎる名前のときのほかは、newedax.11 のツールと同じ入力で同じ出力です。
 
-**確認**：C 版と同じく、直す前と後で、試験用の book（1 スレッドと 4 スレッド）の book のコマンド 76 通りの書いたファイルと答え、解析の命令 20,046 個の答え、ほかのコマンド 25 場面の出力（時間と book のソースの行番号のほか）が同じでした。libedax の試験 281 項目と解析の単体試験が通り、gcc 11（WSL）の組み立ては警告が前と同じで、そのライブラリは 251 項目（Windows だけの項目のほか全部）が通りました。答え 6,880 個が C 版 v4.5.5-nikque.27 と同じです。評価の道具は、newedax.11 の道具と同じ入力で 26 事例の出力が同じでした（そのソースから組み立てたものとも、配布物のものとも。入力に実 book は使っていません）。
-
-**未確認**：実 book での時間とメモリ、Android の実機、評価の道具のメモリが足りないときの道（読んで確かめた）。
+**未確認**：実 book での時間とメモリ、Android の実機、評価のツールのメモリが足りないときの動き（読んで確かめただけです）。
 
 [検証記録](docs/validation/newedax.ja.md#v455-newedax12)
 
@@ -404,18 +466,20 @@ C 版と同じく、起動のときにほかのプログラムが開いていた
 
 ## v4.5.5-newedax.11
 
-C 版と同じく、`book deviate`・`book deviate2`・`book deviate3` に、book を広げずに、たどる手順をテキストファイルに書き出す `export` を足しました。
+C 版と同じく、`book deviate`・`book deviate2`・`book deviate3` に `export` を足しました。book を広げずに、たどる手順をテキストファイルに書き出します。
 
 **変更**
 
-- C 版 v4.5.5-nikque.26 の変更を取り込みました（[C 版の修正一覧](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.ja.md#v455-nikque26)）：`export <ファイル> [leaf|ends|all]`、libedax の `edax_book_deviate_export`、`@cancel id=N state=none export=1` の印。
-- 手引き：7.3 と 12.4 に書きました（C 版と同じ文）。
+- C 版 v4.5.5-nikque.26 の変更を取り込みました（[C 版の修正一覧](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.ja.md#v455-nikque26)）。
+  - `export <ファイル> [leaf|ends|all]` を足しました。
+  - libedax に `edax_book_deviate_export` を足しました。
+  - `@cancel id=N state=none export=1` の印を足しました。
+- マニュアル：7.3 と 12.4 に書きました（C 版と同じ文）。
 
 **互換性**
 
-- `export` を付けないコマンドは v4.5.5-newedax.10 と同じです。探索の結果・`eval.dat`・book のファイル形式は変わりません。
-
-**確認**：C 版と同じ書き出しの試験（試験用の book 3 つで 4,545 通り）を流しました。
+- `export` を付けないコマンドは v4.5.5-newedax.10 と同じです。
+- 探索の結果・`eval.dat`・book のファイル形式は変わりません。
 
 **未確認**：実 book での時間とメモリ、Android の実機。
 
@@ -425,19 +489,17 @@ C 版と同じく、`book deviate`・`book deviate2`・`book deviate3` に、boo
 
 ## v4.5.5-newedax.10
 
-C 版と同じく、うみがめ数の `exact=0` が付く値が、組み立てた環境によらず同じになるようにしました。
+C 版と同じく、うみがめ数の `exact=0` が付く値が、ビルドした環境によらず同じになるようにしました。
 
 **変更**
 
 - C 版 v4.5.5-nikque.25 の変更を取り込みました（[C 版の修正一覧](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.ja.md#v455-nikque25)）。
-- 手引き：12.4 に書きました（C 版と同じ文）。
+- マニュアル：12.4 に書きました（C 版と同じ文）。
 
 **互換性**
 
 - `exact=0` が付く値は、v4.5.5-newedax.9 と変わることがあります（どちらも上限です）。ほかの答えは同じです。
 - 探索の結果・`eval.dat`・book のファイル形式は変わりません。
-
-**確認**：C 版と同じ試験（`tests/book-analyze.cpp`、`umigame-order` を含む）が全部通り、数は C 版と同じでした。
 
 **未確認**：実 book での速さ、GUI での動き、Android の実機。
 
@@ -447,22 +509,21 @@ C 版と同じく、うみがめ数の `exact=0` が付く値が、組み立て�
 
 ## v4.5.5-newedax.9
 
-GUI の候補手の表のうみがめ数・局面の数と、`book levels`・`book missing` を、C 版と同じく、前の局面の答えから引き継いで、同じ計算をし直さないようにしました。
+C 版と同じく、GUI の候補手の表のうみがめ数・局面の数と、`book levels`・`book missing` を前の局面の答えから引き継ぎ、同じ計算をし直さないようにしました。
 
 **変更**
 
 - C 版 v4.5.5-nikque.24 の変更を取り込みました（[C 版の修正一覧](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.ja.md#v455-nikque24)）。
-  - うみがめ数：手の後の局面の網を数えるとき、その中の 1・2 手先の局面の値も覚え、その局面が今の局面になったときに網を作り直しません。
+  - うみがめ数：手の後の局面の網を数えるとき、その中の 1・2 手先の局面の値も覚えます。その局面が今の局面になったときに、網を作り直しません。
   - 局面の数（`part=count`）と `book levels`：局面ごとの答えを、book が変わるまで覚えます。
-  - `book missing`：覚えている精度の段階から、聞いた範囲で何も見つからないとわかるときは、歩かずに 0 本と答えます。
-- 手引き：12.4 に上の 3 つを書きました（C 版と同じ文）。
+  - `book missing`：覚えている精度の段階から、聞いた範囲で何も見つからないとわかるときは、たどらずに 0 本と答えます。
+- マニュアル：12.4 にこの 3 つを書きました（C 版と同じ文）。
 
 **互換性**
 
-- `book moveinfo`・`book levels`・`book missing` の答えは v4.5.5-newedax.8 と同じです。ただし、その局面だけから数えると `exact=0` が付くうみがめ数が、前の局面で覚えたちょうどの値（`exact=0` なし、より小さいか同じ値）になることがあります。
+- `book moveinfo`・`book levels`・`book missing` の答えは v4.5.5-newedax.8 と同じです。
+- ただし、その局面だけから数えると `exact=0` が付くうみがめ数が、前の局面で覚えたちょうどの値（`exact=0` なし、より小さいか同じ値）になることがあります。
 - 探索の結果・`eval.dat`・book のファイル形式は変わりません。
-
-**確認**：C 版と同じ試験（`tests/book-analyze.cpp`）で、引き継いだ答えは、その局面だけから求めた答えと全部の手で同じでした。v4.5.5-newedax.8 と同じ命令（試験用の book 2 つ、条件 5 つ）を流した `@` の行は、newedax.8 とも C 版とも同じでした。
 
 **未確認**：実 book での速さ、GUI での動き、Android の実機。
 
@@ -472,23 +533,28 @@ GUI の候補手の表のうみがめ数・局面の数と、`book levels`・`bo
 
 ## v4.5.5-newedax.8
 
-GUI の候補手の表の精度（`book moveinfo` の `stage=`）を、C 版と同じく、前後の局面の答えから引き継いで、歩く量を減らしました。book のコマンドを `book` なしで打ったときに、打ち方を案内します。手引きと文書を書き直しました。
+C 版と同じく、GUI の候補手の表の精度（`book moveinfo` の `stage=`）を前後の局面の答えから引き継ぎ、たどる量を減らしました。book のコマンドを `book` なしで入力したときに、入力の仕方を案内します。マニュアルと文書を書き直しました。
 
 **変更**
 
 - C 版 v4.5.5-nikque.23 の変更を取り込みました（[C 版の修正一覧](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.ja.md#v455-nikque23)）。
-  - 覚えている今の局面の段階と、手の後の局面の先の局面の段階からわかる所は、歩かずに決めます。答え（`stage=`・`missing=`）は v4.5.5-newedax.7 と同じです。
-  - 最上位で book のコマンドの名前（`leaf expand 30 30`・`fill2 2` など）を打つと、警告に `(book command: type "book leaf expand 30 30" or "b leaf expand 30 30")` を添えます。最上位のコマンド・設定・`base` のコマンドと同じ名前には添えません。
-- 手引き：C 版と同じ見直し（言い回し、book のコマンドを全部 `book …` の形で書く、9.4 の保存の時間「18〜28 秒」、4 章の `refit` の説明から C 版の修正一覧の nikque.5 へのリンク）。12.4・13.2 に上の 2 つの変更を書きました。
-- 文書：README と修正一覧を書き直し、テストと実測の記録を `docs/validation/` へ移し、`README-NIKQUE.*` を消しました。配布物には `README-NIKQUE.*` の代わりに `README.md` が入ります。`config.ini` の初めの説明の行は、手引きの 4 章を指します。
+  - 覚えている今の局面の段階と、手の後の局面の先の局面の段階からわかる所は、たどらずに決めます。答え（`stage=`・`missing=`）は v4.5.5-newedax.7 と同じです。
+  - 最上位で book のコマンドの名前（`leaf expand 30 30`・`fill2 2` など）を入力すると、警告に `(book command: type "book leaf expand 30 30" or "b leaf expand 30 30")` を添えます。
+  - 最上位のコマンド・設定・`base` のコマンドと同じ名前には添えません。
+- マニュアル：C 版と同じ見直しをしました。
+  - 言い回しを見直しました。
+  - book のコマンドを、全部 `book …` の形で書きました。
+  - 9.4 の保存の時間を「18〜28 秒」にしました。
+  - 4 章の `refit` の説明から、C 版の修正一覧の nikque.5 へリンクしました。
+  - 12.4・13.2 に、この版の 2 つの変更を書きました。
+- 文書：README と修正一覧を書き直し、テストと実測の記録を `docs/validation/` へ移し、`README-NIKQUE.*` を消しました。
+- 配布版には `README-NIKQUE.*` の代わりに `README.md` が入ります。`config.ini` の初めの説明の行は、マニュアルの 4 章を指します。
 
 **互換性**
 
 - `book moveinfo` の答えは v4.5.5-newedax.7 と同じです。
 - 知らないコマンドの警告の行は、book のコマンドの名前のときだけ、後ろに案内が付きます（前の部分は同じです）。
 - 探索の結果・`eval.dat`・book のファイル形式は変わりません。
-
-**確認**：C 版と同じ試験（`tests/book-analyze.cpp`）で、引き継いだ段階は局面ごとに歩いた段階と全部の手で同じ（作り物の book 200 冊と試験用の book 2 つ）。`book moveinfo` の答えは、v4.5.5-newedax.7 とも C 版とも同じでした（試験用の book 2 つ、棋譜 2 局の各局面、基準 3 つ）。
 
 **未確認**：実 book での速さ、GUI での動き、Android の実機。
 

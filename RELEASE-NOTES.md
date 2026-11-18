@@ -33,51 +33,79 @@ Each version contains all changes of the C versions on the same row.
 
 ## v4.5.5-heath.16
 
-**The first version under the name Heath (formerly newedax): the repository is now `Nikque/Heath` (the old address leads there). `book correct`, `book leaf recalculate` and `book learn` go on from a book saved before they ended, and `book deepen` works.** The changes of the C version v4.5.5-nikque.29 / v4.5.5-eval2.17. The search, the evaluation and its `eval.dat` files (those of v4.5.5-newedax.13, in the ZIPs of this release) are not changed.
+The first version under the name Heath (formerly newedax). `book correct`, `book leaf recalculate` and `book learn` can go on from a book saved before they ended, and `book deepen` now works.
 
 **Changes**
 
-- `book correct` marks in the book each solved position it searched again; run again on a book saved before it ended (`<book-file>.err`, or the save at the exit), it searches only the positions without a mark, and removes all the marks when every position is done. Up to v4.5.5-newedax.15 a new run searched every solved position again from the beginning (days on a large book).
-- `book leaf recalculate` (2, 3, 4) does the same with the leaves it searches again.
-- `book learn <file>` writes `<book-file>.learn` (the lines of the file learned in the book saved to `<book-file>.store`, a check value of them, and the size, level and depth of the book); `book learn` with the same file on this book skips these lines; the file is removed when the whole file is learned.
-- `book deepen` gives the positions of a level shallower than the book the level of the book, and searches them again with it (it kept their level and searched them again with it: nothing became deeper, and a new run did all again).
-- The name: Heath (formerly newedax) in README, the release notes and the manual. The program still calls itself Edax (in the protocols used by GUIs), and the names of the earlier versions (`v4.5.5-newedax.N`) do not change.
+- The changes of the 4 book commands are those of the C versions v4.5.5-nikque.29 and v4.5.5-eval2.17 ([the C release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque29)).
+- `book correct` marks in the book each solved position it searched again.
+- Run again on a book saved before it ended (`<book-file>.err`, or the save at the exit), `book correct` searches only the positions without a mark. When every position is done, it removes all the marks.
+- Up to v4.5.5-newedax.15, a new run of `book correct` searched every solved position again from the beginning (days on a large book).
+- `book leaf recalculate` (2, 3, 4) does the same with the leaves it searches again, and goes on from where it stopped.
+- `book learn <file>` writes `<book-file>.learn`. It holds the number of lines of the file learned in the book saved to `<book-file>.store`, a check value of them, and the number of positions, the level and the depth of the book.
+- `book learn` run again with the same file on this book skips the lines already learned. `<book-file>.learn` is removed when the whole file is learned.
+- `book deepen` gives the positions of a level shallower than the book the level of the book, and searches them again with it. Before, it searched them again with their own level: nothing became deeper, and a new run did all again.
+- The name: Heath (formerly newedax) in README, the release notes and the manual. The repository is now `Nikque/Heath` (the old address leads there).
+- The program still calls itself Edax (in the protocols used by GUIs). The names of the earlier versions (`v4.5.5-newedax.N`) do not change.
 
 **Compatibility**
 
-- The marks are the two upper bits of the level byte of a position, in both forms of book file: the size and the format do not change, and a book without marks is the same as before. **A book saved before `book correct` or `book leaf recalculate` ended holds marks, and v4.5.5-newedax.15 and earlier read it as a damaged book**; a finished book has no mark. The eval tools (`tools/eval`) read the level without the marks.
+- The marks are the two upper bits of the level byte of a position, in both forms of book file. The size and the format of the file do not change. A book without marks is the same as before.
+- **A book saved before `book correct` or `book leaf recalculate` ended holds marks, and v4.5.5-newedax.15 and earlier read it as a damaged book and do not load it.** A finished book has no mark.
+- The eval tools (`tools/eval`) read the level without the marks.
 - The search is not changed: the same values, node counts and lines as v4.5.5-newedax.15.
+- The evaluation and its `eval.dat` files are not changed (those of v4.5.5-newedax.13, in the ZIPs of this release).
 
-**Checked**: `tests/book-resume.py` (41 checks, also in form 2); the 14 book suites of the C version give the same books as v4.5.5-newedax.15 (except the save date; with `-book-seed 1` for the suite that learns with a random seed from the clock); `tests/regression.cpp` (54 cases); the release programs of both builds give the same values, node counts and lines as v4.5.5-newedax.15.
+**Not checked**: a real large book, real Android devices, Windows ARM64.
 
 [Tests and measurements](docs/validation/newedax.en.md#v455-heath16)
 
+---
+
 ## v4.5.5-newedax.15
 
-**A fix of the exact search: a wrong score (and move) at level 60, rarely, from 17 empties on.** The search, the evaluation and its `eval.dat` files (those of v4.5.5-newedax.13, in the ZIPs of this release) and the book are otherwise not changed.
+A fix of the exact search: at level 60, from 17 empties on, it rarely gave a wrong score (and move).
 
-**Fix**
+**Fixes**
 
-- An exact search (a level whose depth is the number of empties, with no selectivity) first searches the position with selectivity (probcut), then exactly. Between those iterations, a node of the midgame search at the depth where the endgame search starts (`DEPTH_MIDGAME_TO_ENDGAME`, 15 empties) was stored in the hash table as exact, because its moves are searched by the endgame search. When that node has to pass, the search of the opponent stays in the midgame search at the same depth, where probcut can cut it: that score was stored as exact and taken by the exact iteration. The exact score of the root, and its move, could then be wrong (always a few discs). In the data of the new `eval.dat` work, about 1 to 2 exact searches in 100,000 at 17 empties gave a wrong score (with 1 or 4 threads, with any hash table size: the same positions every time). Now such a node (a pass) is stored with the selectivity of the search.
-- The same error is in the C version (v4.5.5-nikque.27, v4.5.5-eval2.15: fixed in v4.5.5-nikque.28 and v4.5.5-eval2.16), and in Edax 4.5.5 and 4.5.6 of Toshihiko Okuhara (edax-reversi-AVX), from which they come. Edax 4.6 and 4.7 of Richard Delorme do not have it.
+- An exact search (a level whose depth is the number of empties, with no selectivity) could give a wrong score and move at the root (always a few discs wrong).
+- In the data of the new `eval.dat` work, about 1 to 2 exact searches in 100,000 at 17 empties gave a wrong score. It happens with 1 or 4 threads, with any hash table size, on the same positions every time.
+- The cause: an exact search first searches the position with selectivity (probcut), then exactly. Between those iterations, a node of the midgame search at the depth where the endgame search starts (`DEPTH_MIDGAME_TO_ENDGAME`, 15 empties) was stored in the hash table as exact, because its moves are searched by the endgame search.
+- When that node has to pass, the search of the opponent stays in the midgame search at the same depth, where probcut can cut it. That score was stored as exact and taken by the exact iteration.
+- Now such a node (a pass) is stored with the selectivity of the search.
+- The same error is in the C versions v4.5.5-nikque.27 and v4.5.5-eval2.15, fixed in v4.5.5-nikque.28 and v4.5.5-eval2.16 ([the C release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque28)).
+- It is also in Edax 4.5.5 and 4.5.6 of Toshihiko Okuhara (edax-reversi-AVX), from which they come. Edax 4.6 and 4.7 of Richard Delorme do not have it.
 
 **Compatibility**
 
-- The scores of exact searches that were right do not change. The node counts change a little (0.01% more on 1,640 positions of 17 to 22 empties); midgame searches (no endgame depth) are not changed.
+- The scores of exact searches that were right do not change.
+- The node counts change a little (0.01% more on 1,640 positions of 17 to 22 empties).
+- Midgame searches (no endgame depth) are not changed.
 - A book whose positions were searched exactly with an earlier version can hold such wrong scores (rarely).
+- The rest of the search, the evaluation and its `eval.dat` files (those of v4.5.5-newedax.13, in the ZIPs of this release) and the book are not changed.
 
-**Checked**: 1,205 positions whose exact scores were wrong (most of them with 17 empties; the scores of an independent solver): all right now, with 1 and 4 threads and hash tables of 2^20 and 2^24; the release programs below.
+**Not checked**: real Android devices, Windows ARM64.
 
 [Tests and measurements](docs/validation/newedax.en.md#v455-newedax15)
 
+---
+
 ## v4.5.5-newedax.14
 
-**Thinking on the opponent's time under NBoard, and the hash tables kept from move to move.** Two settings, both off unless given: `-ponder on` lets the NBoard protocol think on the opponent's time; `-keep-hash on` keeps the hash tables when a new board continues the game. The search, the evaluation, the `eval.dat` files (those of v4.5.5-newedax.13, in the ZIPs of this release) and the book are not changed: without these settings, the moves and the scores are those of v4.5.5-newedax.13.
+Edax can now think on the opponent's time under NBoard, and keep the hash tables from move to move. Both are new settings, off unless given.
 
 **Changes**
 
-- NBoard, `-ponder on` (or `set ponder on`): when the interface sends back with `move` the move of Edax's own `go`, Edax ponders: it guesses the opponent's move (from its last search) and searches the position after it. The opponent's move, given by `move` or by `set game` with the position after it, goes on with that search: the next `go` continues it. Another move stops it, and `go` searches as before. `ping` does not stop the pondering, and it stops the search of a `go` as before; a `ping` that comes just after a `go`, before its search starts, now stops it too (up to v4.5.5-newedax.13 that stop was lost, and the search went on to its own limit). Without `-ponder on` given, the NBoard protocol does not ponder, as before (`ponder` is on by default, for the other protocols: under NBoard only a setting given counts).
-- `-keep-hash on` (or `keep-hash on`; `set keep-hash on` under NBoard; off by default): a new board that continues the game (every square taken on the previous board is taken on the new one) keeps the hash tables, for `set game` of NBoard, `setboard` and the FEN of the Edax protocol, and the board of libedax. Up to v4.5.5-newedax.13 they were cleaned at each one (all their entries were dead), so an interface that sends the board of each move searched each move from empty tables, and a search on the person's turn (the pondering of nikque GUI) did not help the next move. Under NBoard, the position pondered keeps them in any case.
+- `-ponder on` (or `set ponder on`): the NBoard protocol thinks on the opponent's time too.
+  - When the interface sends back with `move` the move of Edax's own `go`, Edax ponders: it guesses the opponent's move (from its last search) and searches the position after it.
+  - When the opponent's move, given by `move` or by `set game` with the position after it, is the move guessed, Edax goes on with that search (the next `go` continues it). Another move stops it, and `go` searches as before.
+  - `ping` does not stop the pondering. It stops the search of a `go` as before.
+  - Without `-ponder on`, the NBoard protocol does not ponder, as before. `ponder` is on by default for the other protocols, so under NBoard it counts only when given.
+- `-keep-hash on` (or `keep-hash on`; `set keep-hash on` under NBoard; off by default): a new board that continues the game keeps the hash tables.
+  - A board continues the game when every square taken on the previous board is taken on the new one.
+  - It works for `set game` of NBoard, `setboard` and the FEN of the Edax protocol, and the board of libedax.
+  - Up to v4.5.5-newedax.13, the hash tables were cleaned at each new board (all their entries were dead). So an interface that sends the board of each move searched each move from empty tables, and a search on the person's turn (the pondering of nikque GUI) did not help the next move.
+  - Under NBoard, the position pondered keeps the hash tables whatever this setting.
 - The commands of an interface that plays under NBoard with `-ponder on -keep-hash on`:
 
 ```
@@ -92,35 +120,49 @@ set game <GGF>         the position after the opponent's move (or: move <the opp
 go                     → goes on with the search pondered when the opponent played the move guessed
 ```
 
-- Tests: `tests/nboard-ponder.py` (57 checks of the above, with the standard error of `-info`).
+- New test `tests/nboard-ponder.py`: it checks the changes of this version with the standard error of `-info`.
 - Manual: the settings `ponder` and `keep-hash` (4.6, 14) and the pondering under NBoard (12.1).
+
+**Fixes**
+
+- Under NBoard, a `ping` that comes just after a `go`, before its search starts, now stops the search too. Up to v4.5.5-newedax.13 that stop was lost, and the search went on to its own limit.
 
 **Compatibility**
 
-- Without `-ponder on` and `-keep-hash on`, the answers are those of v4.5.5-newedax.13 (but the stop of a `ping` given just after a `go`, above).
+- Without `-ponder on` and `-keep-hash on`, the answers are those of v4.5.5-newedax.13. The only difference is the stop of a `ping` given just after a `go`.
 - With `-keep-hash on`, a search uses what the searches of the previous moves found: its scores and node counts are not those of a search from empty tables.
-- With `-ponder on` under NBoard, Edax uses its threads on the opponent's time: on the same CPUs as another engine, it takes time from it.
-
-**Checked**: see the tests below: the checks of `tests/nboard-ponder.py`, and the release programs give the same results and node counts as those of v4.5.5-newedax.13.
+- With `-ponder on` under NBoard, Edax uses its threads on the opponent's time. On the same CPUs as another engine, it takes time from that engine.
+- The search, the evaluation, the `eval.dat` files (those of v4.5.5-newedax.13, in the ZIPs of this release) and the book are not changed.
 
 **Not checked**: the strength with and without the pondering (no games were played for this release), NBoard GUI itself, real Android devices, Windows ARM64.
 
 [Tests and measurements](docs/validation/newedax.en.md#v455-newedax14)
 
+---
+
 ## v4.5.5-newedax.13
 
-**A new evaluation function: 64 feature slots, trained again, and a 48-slot build.** The release has two ZIPs: `edax-4.5.5-newedax.13-64.zip` (the default build, 64 slots) and `edax-4.5.5-newedax.13-48.zip` (48 slots: the 64 without 2 shapes, faster per node). Each holds its own `eval.dat` (107,612,578 bytes); the `eval.dat` of eval2 that stays in `bin/data` of the repository is not for these builds. At the same time (30 s a game a side), the 64-slot build is **+60.2 Elo** (95%: +47.9 to +72.6) against eval2 (v4.5.5-newedax.12), and **+23.2 Elo** (+3.0 to +43.6) against Egaroucid (its tournament branch, 120 s a game, 8 threads). The default probcut model is now `refit`.
+A new evaluation function: 64 feature slots, trained again (the default), and a 48-slot build. At the same time, the 64-slot build is +60.2 Elo against eval2 (v4.5.5-newedax.12).
 
 **Changes**
 
-- Evaluation (default build, `EVAL_SLOTS` 64): the 13 groups of Edax 4.5 and 13 extra groups (`M X W C`, weights of 3^10 squares or 3^9), 15 shapes and the mobility weights in 64 slots, chosen by searches on the error of the evaluation and level 18/24 games from 2026-11-05 to 11-13 (the shapes and their squares below). The weights were trained again with `tools/eval/evsearch` (plies 2-53).
-- The 48-slot build (`EVAL_SLOTS=48`): the same source and the same `eval.dat` format as the 64 slots, without the shapes `cxd10` and `edw10` (16 slots: the feature updates use 3 vectors of 256 bits in place of 4), with weights trained without them. It searches about 11 % more nodes in the same time, but its evaluation loses more: at the same time it is −12.1 Elo (−17.3 to −6.9) against the 64 slots.
-- `EVAL_SLOTS` 48 no longer means eval2: the eval2 evaluation (46 patterns) is no longer built.
-- Probcut: `refit` is the default (`-probcut-model refit`, and `probcut-model = refit` in `bin/config.ini`). It was measured against `standard` on these weights: `standard` −1.0 Elo (−5.9 to +3.8, 4,378 games) for the 64 slots, −7.7 (−14.8 to −0.7, 2,204 games) for the 48 slots.
-- Search: a thread that waits polls before it sleeps; the threads split from depth 9. AVX-512 builds read the weights of a ply from one table, one by one.
+- The release has two ZIPs.
+  - `edax-4.5.5-newedax.13-64.zip`: the default build, 64 slots.
+  - `edax-4.5.5-newedax.13-48.zip`: 48 slots, the 64 without 2 shapes; faster per node.
+  - Each holds its own `eval.dat` (107,612,578 bytes).
+- Evaluation (default build, `EVAL_SLOTS` 64): the 13 groups of Edax 4.5, 13 extra groups (`M X W C`, weights of 3^10 squares or 3^9), 15 shapes and the mobility weights in 64 slots.
+- The shapes were chosen from 2026-11-05 to 11-13 by searches on the error of the evaluation and level 18/24 games (the shapes and their squares in the table that follows).
+- The weights were trained again with `tools/eval/evsearch` (plies 2-53).
+- The 48-slot build (`EVAL_SLOTS=48`): the same source and the same `eval.dat` format as the 64 slots, without the shapes `cxd10` and `edw10` (16 slots). Its weights were trained without them.
+- The feature updates of the 48-slot build use 3 vectors of 256 bits in place of 4. It searches about 11 % more nodes in the same time, but its evaluation loses more: at the same time it is −12.1 Elo (−17.3 to −6.9) against the 64 slots.
+- `EVAL_SLOTS` 48 no longer means eval2. The eval2 evaluation (46 patterns) can no longer be built.
+- Probcut: `refit` is the default (`-probcut-model refit`, and `probcut-model = refit` in `bin/config.ini`).
+- Search: a thread that waits polls before it sleeps, and the threads split from depth 9.
+- AVX-512 builds read the weights of a ply from one table, one by one.
 - Tools (`tools/eval`): `evshape`; `evsearch -mute`, `-method sd`; `w2dat2 -interp` and the extra groups; `selfplay3 -h`; refit in the search of `selfplay3` and `label`; `pcsigma`.
 - Evaluation file: the 64-slot and the 48-slot builds give a warning when the file has no weights for their extra groups (the `eval.dat` of eval2 or of Edax 4.5).
-- Tests (`tests/regression.cpp`): `evalslots` reads the table of AVX-512 builds, counts the extra weights of the file and checks the update on every slot; the cases of the files of form 1 (`evalform2`, `evalform2mob`, `evalbadconv`, `evalmobility`) make their file of form 1 from the 13 groups of Edax 4.5 of an `eval.dat` of form 2.
+- Tests (`tests/regression.cpp`): `evalslots` reads the table of AVX-512 builds, counts the extra weights of the file and checks the update on every slot.
+- Tests (`tests/regression.cpp`): the cases of the files of form 1 (`evalform2`, `evalform2mob`, `evalbadconv`, `evalmobility`) make their file of form 1 from the 13 groups of Edax 4.5 of an `eval.dat` of form 2.
 
 The shapes of the 64 slots (slots: the images used):
 
@@ -141,6 +183,9 @@ The shapes of the 64 slots (slots: the images used):
 | `d3e10` | c1 b2 e2 a3 g4 b5 h6 d7 g7 f8 | 2 |
 | `cxd10` (not in the 48 slots) | c1 d1 g1 h1 b2 d2 f2 g2 h2 f3 | 8 |
 | `edw10` (not in the 48 slots) | g5 f6 e7 f7 g7 d8 e8 f8 g8 h8 | 8 |
+
+<details>
+<summary>The shapes on the board (15)</summary>
 
 The shapes on the board (X the squares of the shape, . the other squares; in the first slot as in the table):
 
@@ -354,15 +399,11 @@ The shapes on the board (X the squares of the shape, . the other squares; in the
 8 . . . X X X X X
 ```
 
-**Compatibility**
+</details>
 
-- The search results change (the evaluation and the default probcut model). The book file format does not change; books learned with an earlier version are read, but their values were given by the former evaluation.
-- `eval.dat`: the file of each build is in its ZIP (`bin/data/eval.dat`), not in git. A build of the repository needs it: the `eval.dat` of eval2 in `bin/data` and the one of Edax 4.5 cannot be used by the 64 and the 48 slots (they are read with a warning, but the evaluation is then wrong).
-- The 64-slot and the 48-slot `eval.dat` have the same format, but each is for its own build.
-- libedax: the same API as v4.5.5-newedax.12. A program that ships the library must ship the `eval.dat` of the same build.
-- `-probcut-model standard` gives the former probcut model.
+**Strength**
 
-**Measured** (the 64-slot build, refit, its PGO build; B is the new build; 95% intervals):
+Games of the 64-slot build (refit, its PGO build). The Elo is that of the new build; the brackets are 95% intervals.
 
 | against | condition | games | Elo |
 |---|---|---|---|
@@ -372,31 +413,52 @@ The shapes on the board (X the squares of the shape, . the other squares; in the
 | Egaroucid (tournament branch `dev-lazysmp-ggs-b`) | 120 s a game, 8 threads | 180 | +23.2 (+3.0 to +43.6) |
 | the 48-slot build (refit) | 30 s a game a side | 4,378 | +12.1 (+6.9 to +17.3) |
 
+- Probcut: `refit` was measured against `standard` on these weights: `standard` is −1.0 Elo (−5.9 to +3.8, 4,378 games) for the 64 slots, −7.7 (−14.8 to −0.7, 2,204 games) for the 48 slots.
+
+**Compatibility**
+
+- The search results change (the evaluation and the default probcut model). `-probcut-model standard` gives the former probcut model.
+- The book file format does not change. Books learned with an earlier version are read, but their values were given by the former evaluation.
+- `eval.dat`: the file of each build is in its ZIP (`bin/data/eval.dat`), not in git. A build of the repository needs it too.
+- The `eval.dat` of eval2 that stays in `bin/data` of the repository and the one of Edax 4.5 cannot be used by the 64 and the 48 slots (they are read with a warning, but the evaluation is then wrong).
+- The 64-slot and the 48-slot `eval.dat` have the same format, but each is for its own build.
+- libedax: the same API as v4.5.5-newedax.12. A program that ships the library must ship the `eval.dat` of the same build.
+
 **Not checked**: real Android devices, Windows ARM64, the speed of the books, builds other than MSVC on Windows and the NDK on Android.
 
 [Tests and measurements](docs/validation/newedax.en.md#v455-newedax13)
 
+---
+
 ## v4.5.5-newedax.12
 
-As in the C version, a book file that another program holds when Edax starts is no longer taken for a damaged one and replaced. Other bugs found in a review are fixed, and the code was rearranged without changing what it does. The eval tools (`tools/eval`) stop with an error on a file name too long and on a failed allocation.
+As in the C version, a book file that another program holds when Edax starts is no longer taken for a damaged one and replaced. Other bugs found in a review are fixed, and the code was rearranged without changing what it does.
 
 **Changes**
 
-- The changes of the C version v4.5.5-nikque.27 ([its release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque27)): a book file that cannot be opened at the start is tried again after about 2 seconds and, if it still cannot be opened, never saved to (no `.damaged` file either); the marks of the book files that could not be loaded; `edax_book_file_status` of libedax; the fixes of `book import`, `book merge`, the `export` of the `book deviate` family, `book moveinfo`, `book reducecount`, the time `5:`, the place of `config.ini`, the table and the statistics of `weval`, libedax and others; the code rearranged without changing what it does.
-- The eval tools (`tools/eval`): when the name of a file made from the name of a folder does not fit in its array, the tool ends with `file name too long` and the exit code 1 (22 places in 10 tools; before, the name was written beyond the array, and `sprepair`, `bookdump` and `w2dat2` crashed or went on with a damaged name). `leafgen` and `w2dat2` end with `out of memory` when an allocation fails. The errors of opening a file and of memory are given by the same functions (`xfopen`, `xmalloc`, `xcalloc`, `die`), with the same messages and exit codes.
-- Tests: `tests/libedax_test.c` has 281 checks (61 more, 28 of them on Windows only), `tests/book-analyze.cpp` 3 more tests, `tests/regression.cpp` the new cases of the C version. The case `evalmobility` of `tests/regression.cpp` passes with the `eval.dat` of newedax, which holds mobility weights (its file without mobility weights is written from the weights of the 61 plies alone; before, it always failed with that `eval.dat`).
+- The changes of the C version v4.5.5-nikque.27 are included ([the C release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque27)).
+  - A book file that cannot be opened at the start is tried again after about 2 seconds. If it still cannot be opened, it is never saved to (no `.damaged` file either).
+  - `edax_book_file_status` was added to libedax.
+  - The code was rearranged without changing what it does.
+- The eval tools (`tools/eval`): the errors of opening a file and of memory are given by the same functions (`xfopen`, `xmalloc`, `xcalloc`, `die`), with the same messages and exit codes.
+- Tests: new checks in `tests/libedax_test.c`, `tests/book-analyze.cpp` and `tests/regression.cpp`.
 - Manual: 4.1, 6.6, 7.3, 8.4, 8.5, 12.2, 12.4 and 13.1 (the same text as the C version, but the number of checks in 12.2).
+
+**Fixes**
+
+- The same fixes as the C version v4.5.5-nikque.27: the marks of the book files that could not be loaded, `book import`, `book merge`, the `export` of the `book deviate` family, `book moveinfo`, `book reducecount`, the time `5:`, the place of `config.ini`, the table and the statistics of `weval`, libedax and others.
+- The eval tools: when the name of a file made from the name of a folder did not fit in its array, the name was written beyond the array, and `sprepair`, `bookdump` and `w2dat2` crashed or went on with a damaged name. Now the tool ends with `file name too long` and the exit code 1 (22 places in 10 tools).
+- The eval tools: `leafgen` and `w2dat2` end with `out of memory` when an allocation fails.
+- The case `evalmobility` of `tests/regression.cpp` always failed with the `eval.dat` of newedax, which holds mobility weights. It now passes (its file without mobility weights is written from the weights of the 61 plies alone).
 
 **Compatibility**
 
 - The search results, `eval.dat` and the book file format do not change.
-- The answers differ from v4.5.5-newedax.11 only in the cases above. The error messages of the book give a line of the source, which changed.
+- The answers differ from v4.5.5-newedax.11 only in the cases fixed in this version. The error messages of the book give a line of the source, which changed.
 - libedax: when the book file of the settings could not be opened at the start, no save replaces it (`edax_book_save_checked` and `edax_book_keep_unread_file` give 0). A program that saves the book itself should look at `edax_book_file_status` after the initialization.
 - The eval tools give the same outputs as those of newedax.11 for the same inputs, but for a name too long.
 
-**Checked**: as for the C version, before and after the changes, on test books with 1 and 4 threads, the book commands (76 cases) write the same files and give the same answers, the analysis commands (20,046) give the same answers, and 25 cases of the other commands give the same output (but the time and the line numbers of the book source). The 281 checks of the test of libedax and the unit tests of the analyses pass; the gcc 11 build (WSL) gives the same warnings as before, and its library passes 251 checks (all but the checks for Windows only). 6,880 answers are the same as those of the C version v4.5.5-nikque.27. The eval tools give the same outputs as those of newedax.11 for the same inputs in 26 cases (both those built from its source and those of its ZIP; no real book among the inputs).
-
-**Not checked**: the time and the memory on a real book, a real Android device, the paths of the eval tools without memory (read only).
+**Not checked**: the time and the memory on a real book, real Android devices, what the eval tools do without memory (read only).
 
 [Tests and measurements](docs/validation/newedax.en.md#v455-newedax12)
 
@@ -404,20 +466,22 @@ As in the C version, a book file that another program holds when Edax starts is 
 
 ## v4.5.5-newedax.11
 
-As in the C version, `book deviate`, `book deviate2` and `book deviate3` can write the lines they walk to a text file without expanding the book (`export`).
+As in the C version, `book deviate`, `book deviate2` and `book deviate3` get `export`: it writes the lines they walk to a text file, without expanding the book.
 
 **Changes**
 
-- The changes of the C version v4.5.5-nikque.26 ([its release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque26)): `export <file> [leaf|ends|all]`, `edax_book_deviate_export` of libedax, the mark `@cancel id=N state=none export=1`.
+- The changes of the C version v4.5.5-nikque.26 are included ([the C release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque26)).
+  - `export <file> [leaf|ends|all]` was added.
+  - `edax_book_deviate_export` was added to libedax.
+  - The mark `@cancel id=N state=none export=1` was added.
 - Manual: 7.3 and 12.4 (the same text as the C version).
 
 **Compatibility**
 
-- The commands without `export` are the same as in v4.5.5-newedax.10. The search results, `eval.dat` and the book file format do not change.
+- The commands without `export` are the same as in v4.5.5-newedax.10.
+- The search results, `eval.dat` and the book file format do not change.
 
-**Checked**: the same test of the export as the C version (4,545 cases on 3 test books).
-
-**Not checked**: the time and the memory on a real book, a real Android device.
+**Not checked**: the time and the memory on a real book, real Android devices.
 
 [Tests and measurements](docs/validation/newedax.en.md#v455-newedax11)
 
@@ -429,7 +493,7 @@ As in the C version, an umigame number marked `exact=0` is the same whatever the
 
 **Changes**
 
-- The changes of C version v4.5.5-nikque.25 are included ([C release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque25)).
+- The changes of the C version v4.5.5-nikque.25 are included ([the C release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque25)).
 - Manual: 12.4 says so (the same text as the C version).
 
 **Compatibility**
@@ -437,9 +501,7 @@ As in the C version, an umigame number marked `exact=0` is the same whatever the
 - A number marked `exact=0` may differ from v4.5.5-newedax.9 (both are upper bounds). The other answers are the same.
 - The search results, `eval.dat` and the book file format do not change.
 
-**Checked**: the tests of the C version (`tests/book-analyze.cpp`, `umigame-order` included) all pass, with the same numbers as the C version.
-
-**Not checked**: the speed on a real book, the behaviour in the GUI, Android devices.
+**Not checked**: the speed on a real book, the behaviour in the GUI, real Android devices.
 
 [Tests and measurements](docs/validation/newedax.en.md#v455-newedax10)
 
@@ -451,20 +513,19 @@ As in the C version, the umigame numbers and the numbers of positions of the can
 
 **Changes**
 
-- The changes of C version v4.5.5-nikque.24 are included ([C release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque24)).
-  - Umigame numbers: when the graph of the position after a move is counted, the values of the positions 1 and 2 moves further in it are kept, so that their graphs are not built again when they become the current position.
+- The changes of the C version v4.5.5-nikque.24 are included ([the C release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque24)).
+  - Umigame numbers: when the graph of the position after a move is counted, the values of the positions 1 and 2 moves further in it are kept. Their graphs are not built again when they become the current position.
   - Numbers of positions (`part=count`) and `book levels`: the answer of each position is kept until the book changes.
-  - `book missing`: when the kept precision stages already tell that the range asked finds nothing, it answers 0 lines without walking.
-- Manual: 12.4 describes the three changes above (the same text as the C version).
+  - `book missing`: when the kept accuracy stages already tell that the range asked finds nothing, it answers 0 lines without walking.
+- Manual: 12.4 describes these three changes (the same text as the C version).
 
 **Compatibility**
 
-- The answers of `book moveinfo`, `book levels` and `book missing` are the same as in v4.5.5-newedax.8, except that an umigame number marked `exact=0` when counted from its position alone may become the exact value kept from the position before (not marked, smaller or equal).
+- The answers of `book moveinfo`, `book levels` and `book missing` are the same as in v4.5.5-newedax.8.
+- But an umigame number marked `exact=0` when counted from its position alone may become the exact value kept from the position before (not marked, smaller or equal).
 - The search results, `eval.dat` and the book file format do not change.
 
-**Checked**: with the tests of the C version (`tests/book-analyze.cpp`), the answers taken over are those found from each position alone, for every move. The `@` lines of the same commands as v4.5.5-newedax.8 (2 test books, 5 conditions) are the same as those of newedax.8 and of the C version.
-
-**Not checked**: the speed on a real book, the behaviour in the GUI, Android devices.
+**Not checked**: the speed on a real book, the behaviour in the GUI, real Android devices.
 
 [Tests and measurements](docs/validation/newedax.en.md#v455-newedax9)
 
@@ -472,15 +533,22 @@ As in the C version, the umigame numbers and the numbers of positions of the can
 
 ## v4.5.5-newedax.8
 
-As in the C version, the precision of the candidate moves of the GUI (`stage=` of `book moveinfo`) is taken over from the answers of the positions before and after, so that less is walked. A book command typed without `book` gets a hint on how to type it. The manual and the documents were rewritten.
+As in the C version, the accuracy of the candidate moves of the GUI (`stage=` of `book moveinfo`) is taken over from the answers of the positions before and after, so that less is walked. A book command typed without `book` gets a hint on how to type it. The manual and the documents were rewritten.
 
 **Changes**
 
-- The changes of C version v4.5.5-nikque.23 are included ([C release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque23)).
+- The changes of the C version v4.5.5-nikque.23 are included ([the C release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque23)).
   - What the kept stage of the current position and the kept stages of the next positions of the position after a move already tell is not walked again. The answers (`stage=`, `missing=`) are the same as in v4.5.5-newedax.7.
-  - A book command typed at the top level (`leaf expand 30 30`, `fill2 2`, …) adds `(book command: type "book leaf expand 30 30" or "b leaf expand 30 30")` to the warning. Names that are also top-level commands, settings or `base` commands get no hint.
-- Manual: the same review as the C version (the wording, every book command in the form `book …`, the time of a save in 9.4: 18 to 28 seconds, the note on `refit` in chapter 4 links to nikque.5 in the C release notes). 12.4 and 13.2 describe the two changes above.
-- Documents: the README and the release notes were rewritten, the test and measurement records moved to `docs/validation/`, and `README-NIKQUE.*` was removed. The package holds `README.md` instead of `README-NIKQUE.*`. The first comment lines of `config.ini` point to chapter 4 of the manual.
+  - A book command typed at the top level (`leaf expand 30 30`, `fill2 2`, …) adds `(book command: type "book leaf expand 30 30" or "b leaf expand 30 30")` to the warning.
+  - Names that are also top-level commands, settings or `base` commands get no hint.
+- Manual: the same review as the C version.
+  - The wording was reviewed.
+  - Every book command is written in the form `book …`.
+  - The time of a save in 9.4 is now 18 to 28 seconds.
+  - The note on `refit` in chapter 4 links to nikque.5 in the C release notes.
+  - 12.4 and 13.2 describe the two changes of this version.
+- Documents: the README and the release notes were rewritten, the test and measurement records moved to `docs/validation/`, and `README-NIKQUE.*` was removed.
+- The release ZIP holds `README.md` instead of `README-NIKQUE.*`. The first comment lines of `config.ini` point to chapter 4 of the manual.
 
 **Compatibility**
 
@@ -488,9 +556,7 @@ As in the C version, the precision of the candidate moves of the GUI (`stage=` o
 - The warning line of an unknown command gets a hint at its end only for the names of book commands (its first part is the same).
 - The search results, `eval.dat` and the book file format do not change.
 
-**Checked**: with the same tests as the C version (`tests/book-analyze.cpp`), the stages taken over are the stages walked from each position alone, for every move (200 random books and 2 test books). The answers of `book moveinfo` are the same as those of v4.5.5-newedax.7 and of the C version (2 test books, each position of 2 games, 3 bases).
-
-**Not checked**: the speed on a real book, the behaviour in the GUI, Android devices.
+**Not checked**: the speed on a real book, the behaviour in the GUI, real Android devices.
 
 [Tests and measurements](docs/validation/newedax.en.md#v455-newedax8)
 

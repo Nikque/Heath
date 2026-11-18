@@ -16,6 +16,10 @@ Checks:
 - The eval tools: 16 programs built with `tools/eval/build-evtools.ps1` (x64 AVX-512, Boost 1.92).
 - Not checked: a real book, real Android devices, Windows ARM64.
 
+### Moved from the release notes
+
+**Checked**: `tests/book-resume.py` (41 checks, also in form 2); the 14 book suites of the C version give the same books as v4.5.5-newedax.15 (except the save date; with `-book-seed 1` for the suite that learns with a random seed from the clock); `tests/regression.cpp` (54 cases); the release programs of both builds give the same values, node counts and lines as v4.5.5-newedax.15.
+
 ## v4.5.5-newedax.15
 
 Checks:
@@ -28,6 +32,10 @@ Checks:
 - The eval tools: 16 programs built with `tools/eval/build-evtools.ps1` (x64 AVX-512, Boost 1.92) without an error.
 - Not checked: real Android devices, Windows ARM64.
 
+### Moved from the release notes
+
+**Checked**: 1,205 positions whose exact scores were wrong (most of them with 17 empties; the scores of an independent solver): all right now, with 1 and 4 threads and hash tables of 2^20 and 2^24; the release programs below.
+
 ## v4.5.5-newedax.14
 
 Checks:
@@ -38,6 +46,12 @@ Checks:
 - `tests/regression.cpp`: the 54 cases pass with the 64 and the 48 slots (AVX-512).
 - The eval tools: 16 programs built with `tools/eval/build-evtools.ps1` (x64 AVX-512, Boost 1.92) without an error.
 - Not checked: the strength with and without the pondering (no games), NBoard GUI itself, real Android devices, Windows ARM64.
+
+### Moved from the release notes
+
+- Tests: `tests/nboard-ponder.py` (57 checks of the above, with the standard error of `-info`).
+
+**Checked**: see the tests below: the checks of `tests/nboard-ponder.py`, and the release programs give the same results and node counts as those of v4.5.5-newedax.13.
 
 ## v4.5.5-newedax.13
 
@@ -64,6 +78,12 @@ Checks:
 - Size (against v4.5.5-newedax.11): the 5 Windows programs −1,536 to +1,024 bytes, the 3 DLLs +1,024 to +2,560 bytes, the Android programs −808 and +352 and libraries +424 and +1,112 bytes (the fixes and the rearranged code); 11 eval tools have the same size, `leafgen` +1,024, `selfplay3` and `sprepair` +512 bytes.
 - Speed: not measured.
 
+### Moved from the release notes
+
+- Tests: `tests/libedax_test.c` has 281 checks (61 more, 28 of them on Windows only), `tests/book-analyze.cpp` 3 more tests, `tests/regression.cpp` the new cases of the C version. The case `evalmobility` of `tests/regression.cpp` passes with the `eval.dat` of newedax, which holds mobility weights (its file without mobility weights is written from the weights of the 61 plies alone; before, it always failed with that `eval.dat`).
+
+**Checked**: as for the C version, before and after the changes, on test books with 1 and 4 threads, the book commands (76 cases) write the same files and give the same answers, the analysis commands (20,046) give the same answers, and 25 cases of the other commands give the same output (but the time and the line numbers of the book source). The 281 checks of the test of libedax and the unit tests of the analyses pass; the gcc 11 build (WSL) gives the same warnings as before, and its library passes 251 checks (all but the checks for Windows only). 6,880 answers are the same as those of the C version v4.5.5-nikque.27. The eval tools give the same outputs as those of newedax.11 for the same inputs in 26 cases (both those built from its source and those of its ZIP; no real book among the inputs).
+
 ## v4.5.5-newedax.11
 
 Checks:
@@ -75,6 +95,10 @@ Checks:
 - The search, the evaluation, the book learning and the file format are not changed (only the export and its mark in `book_analyze.cpp`, the reading of the command and `help book` in `edax.cpp`, and the function of libedax are new).
 - Size (against v4.5.5-newedax.10): the 5 Windows programs +3,584 to +9,728, the 3 DLLs +20,480 to +22,016, the Android programs +7,464 and +3,656 and libraries +8,552 and +4,400 bytes (the functions of the export).
 - The eval tools (`tools/eval`) are not changed, and their tests were not run again. The speed was not measured.
+
+### Moved from the release notes
+
+**Checked**: the same test of the export as the C version (4,545 cases on 3 test books).
 
 ## v4.5.5-newedax.10
 
@@ -88,6 +112,10 @@ Checks:
 - Size (against v4.5.5-newedax.9): `wEdax-x86-64-v4.exe` (no PGO) the same size, the 4 PGO programs −512 to +512 bytes, the 3 DLLs the same size; the Android programs +32 and +16 bytes, the libraries +32 and +16 bytes.
 - The speed was not measured.
 
+### Moved from the release notes
+
+**Checked**: the tests of the C version (`tests/book-analyze.cpp`, `umigame-order` included) all pass, with the same numbers as the C version.
+
 ## v4.5.5-newedax.9
 
 Checks:
@@ -100,6 +128,10 @@ Checks:
 - Size (against v4.5.5-newedax.8): `wEdax-x86-64-v4.exe` (no PGO) +1,536 bytes, the 4 PGO programs +512 to +2,560 bytes, the 3 DLLs the same size; the Android programs +1,488 and +848 bytes, the libraries +1,504 and +864 bytes.
 - The speed was not measured.
 
+### Moved from the release notes
+
+**Checked**: with the tests of the C version (`tests/book-analyze.cpp`), the answers taken over are those found from each position alone, for every move. The `@` lines of the same commands as v4.5.5-newedax.8 (2 test books, 5 conditions) are the same as those of newedax.8 and of the C version.
+
 ## v4.5.5-newedax.8
 
 Checks:
@@ -111,6 +143,10 @@ Checks:
 - The search, the evaluation, the book learning and the file format are not changed (the code changed finds the precision stages of `book moveinfo`, and writes the warning of an unknown command).
 - Size (against v4.5.5-newedax.7): `wEdax-x86-64-v4.exe` (no PGO) +4,096 bytes, the 4 PGO programs +2,560 to +4,096 bytes, the 3 DLLs the same size; the Android programs +2,544 and +4,352 bytes, the libraries +2,392 and +4,368 bytes.
 - The speed was not measured.
+
+### Moved from the release notes
+
+**Checked**: with the same tests as the C version (`tests/book-analyze.cpp`), the stages taken over are the stages walked from each position alone, for every move (200 random books and 2 test books). The answers of `book moveinfo` are the same as those of v4.5.5-newedax.7 and of the C version (2 test books, each position of 2 games, 3 bases).
 
 ## v4.5.5-newedax.7
 
