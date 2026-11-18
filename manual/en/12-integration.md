@@ -229,16 +229,15 @@ The library and the edax program (for the same CPU) search the same number of no
 **Tests**
 
 - `tests/libedax_test.c` calls every function.
-  - Number of checks: 147.
-    - 191 in v4.5.5-nikque.9, 193 in v4.5.5-nikque.10, 197 in v4.5.5-nikque.12, 198 in v4.5.5-nikque.13.
-    - 220 in newedax.11 (14 of them for the export).
-    - 281 in newedax.12. These 61 checks were added (28 of them on Windows only):
-      - an export after the book changes: 9;
-      - a book that cannot be opened, in a folder with a non-ASCII name: 8;
-      - the marks of the files that could not be loaded, names written another way, and `edax_book_file_status`: 21;
-      - a book held by another program at the start: 17;
-      - the depth of `edax_book_new`: 4;
-      - the stop of `edax_hint`: 2.
+  - Number of checks: 281 (since v4.5.5-newedax.12).
+  - Earlier counts: 147 at first; 191 in v4.5.5-nikque.9, 193 in v4.5.5-nikque.10, 197 in v4.5.5-nikque.12, 198 in v4.5.5-nikque.13; 220 in v4.5.5-newedax.11 (14 of them for the export).
+  - The 61 checks added in v4.5.5-newedax.12 (28 of them on Windows only):
+    - an export after the book changes: 9;
+    - a book that cannot be opened, in a folder with a non-ASCII name: 8;
+    - the marks of the files that could not be loaded, names written another way, and `edax_book_file_status`: 21;
+    - a book held by another program at the start: 17;
+    - the depth of `edax_book_new`: 4;
+    - the stop of `edax_hint`: 2.
   - The 3 Windows and the 3 Linux libraries pass.
   - The original libedax gives the same results on the checks it supports.
 - 28 of the 29 tests of libedax4dart 7.67.0 pass. The remaining one compares a search score. The score differs because of the default level and the state left by previous searches; a fresh search at the same level gives the same score as the original libedax.
