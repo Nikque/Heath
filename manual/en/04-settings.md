@@ -27,7 +27,9 @@ Notes:
   ```
   WARNING: config.ini was not found in the current folder (Edax was started without its folder name): default settings are used
   ```
-- If the name of the folder of the executable is too long for the path of its `config.ini` (more than 249 characters on Windows), Edax prints `WARNING: the name of the folder of Edax is too long: its config.ini is not read, default settings are used` and uses the built-in values (up to v4.5.5-nikque.26, it read the `config.ini` of the current folder and printed the wrong warning above).
+- If the name of the executable's folder is too long (more than 249 characters on Windows), Edax cannot build the path of its `config.ini`. Then:
+  - Edax prints `WARNING: the name of the folder of Edax is too long: its config.ini is not read, default settings are used` and uses the built-in values.
+  - Up to v4.5.5-nikque.26, it read the `config.ini` of the current folder and printed the wrong warning of the previous item.
 - Typing `options` after `>` shows all current values.
 
 ## 4.2 How to write config.ini
@@ -118,7 +120,7 @@ The package's `bin/config.ini` contains these settings. The "built-in value" is 
 | `book-expand-tasks` | `auto` | 1 | Number of positions that the automatic book commands expand at the same time. Chapters [7](07-book-learning.md) and [9](09-large-books.md) |
 | `book-leaf-recalculate-rounds` | `1` | 1 | Largest number of rounds of `book leaf recalculate` and its family. [Chapter 8](08-book-maintenance.md) |
 | `book-store-tasks` | `auto` | `auto` | Number of games learned at the same time by the commands that grow a book from games. Chapters [7](07-book-learning.md) and [9](09-large-books.md) |
-| `probcut-model` | `refit` | `refit` | Pruning model of the search. `refit` is the default since v4.5.5-newedax.13 (the model of its measures); `standard` is the model of Edax 4.5.5 (the default up to v4.5.5-newedax.12). They give different search results (read [v4.5.5-nikque.5 in the release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque5)) |
+| `probcut-model` | `refit` | `refit` | Pruning model of the search. `refit` is the default since v4.5.5-newedax.13 (the model of its measures). `standard` is the model of Edax 4.5.5 (the default up to v4.5.5-newedax.12). They give different search results (read [v4.5.5-nikque.5 in the release notes](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque5)) |
 
 **Note on `level` in `config.ini`**: a `level` in `config.ini` (or `edax.ini`) only sets the starting level. In a timed game (`-t`, `-move-time`), it does not limit the search depth. To limit it, use `-l` on the command line or the `level` command ([3.8](03-playing.md)).
 
@@ -132,7 +134,7 @@ The package's `bin/config.ini` contains these settings. The "built-in value" is 
 | `book-store-auto-save` | `on` | Save to `<book file>.store` after `book store` and `book learn`, or not. [Chapter 7](07-book-learning.md) |
 | `game-time` (`-t`) | none | Time for a whole game. [3.8](03-playing.md) |
 | `move-time` | none | Time for one move |
-| `ponder` | `on` | Think during the opponent's turn (under NBoard, only when it is given: since v4.5.5-newedax.14, [12.1](12-integration.md)) |
+| `ponder` | `on` | Think during the opponent's turn (under NBoard, only when the setting is given; since v4.5.5-newedax.14, [12.1](12-integration.md)) |
 | `keep-hash` | `off` | Keep the hash tables when a new board continues the game (`setboard`, NBoard's `set game`; since v4.5.5-newedax.14) |
 | `mode` | 3 | The `mode` at start ([3.2](03-playing.md)) |
 | `verbose` | 1 | How much is displayed (0 to 4; [3.10](03-playing.md)) |

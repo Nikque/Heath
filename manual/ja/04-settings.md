@@ -29,7 +29,9 @@ Edax は、起動のときに次の順に設定を読みます。**後から読�
   ```
   WARNING: config.ini was not found in the current folder (Edax was started without its folder name): default settings are used
   ```
-- 実行ファイルのフォルダーの名前が長すぎて `config.ini` の場所を組み立てられないとき（Windows では 249 字より長いとき）は、`WARNING: the name of the folder of Edax is too long: its config.ini is not read, default settings are used` と出して、組み込みの値で動きます（v4.5.5-nikque.26 までは、カレントフォルダーの `config.ini` を読み、上の誤った警告を出していました）。
+- 実行ファイルのフォルダーの名前が長すぎると（Windows では 249 字より長いと）、`config.ini` のパスを作れません。このときは、次のようになります。
+  - `WARNING: the name of the folder of Edax is too long: its config.ini is not read, default settings are used` と出して、組み込みの値で動きます。
+  - v4.5.5-nikque.26 までは、カレントフォルダーの `config.ini` を読み、1 つ前の項目の誤った警告を出していました。
 - 現在の値は、`>` の後に `options` と入力すると、全部表示されます。
 
 ## 4.2 config.ini の書き方
@@ -147,7 +149,7 @@ wEdax-x86-64.exe -l 12 -n 4 -book-file data/my.dat
 | `game-time`（`-t`） | なし | 1 局の持ち時間。[3.8](03-playing.md) |
 | `move-time` | なし | 1 手の時間 |
 | `ponder` | `on` | 相手の番の間も考える（NBoard では指定したときだけ。v4.5.5-newedax.14 から。[12.1](12-integration.md)） |
-| `keep-hash` | `off` | 新しい盤が同じ対局の続きのとき、置換表を残す（`setboard`、NBoard の `set game`。v4.5.5-newedax.14 から） |
+| `keep-hash` | `off` | 新しい盤が同じ対局の続きのとき、ハッシュ表を残す（`setboard`、NBoard の `set game`。v4.5.5-newedax.14 から） |
 | `mode` | 3 | 起動したときの `mode`（[3.2](03-playing.md)） |
 | `verbose` | 1 | 表示の量（0〜4。[3.10](03-playing.md)） |
 | `search-log-file` | なし | 探索の記録を書き出すファイル |

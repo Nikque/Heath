@@ -146,7 +146,7 @@ The "built-in value" is the value used when nothing is given.
 | `hash-table-size` (`h`) | 10 to 30 (25 at most in the 32-bit versions), `auto` | 21 | `auto` | The size of the hash table (changing it while running rebuilds the tables) |
 | `game-time` (`t`) | time | none | | Time for the whole game |
 | `move-time` | time | none | | Time for one move |
-| `ponder` | `on` / `off` | `on` | | Think during the opponent's turn too (under NBoard, only when given) |
+| `ponder` | `on` / `off` | `on` | | Think during the opponent's turn too (under NBoard, only when the setting is given) |
 | `keep-hash` | `on` / `off` | `off` | | Keep the hash tables when a new board continues the game (since v4.5.5-newedax.14) |
 | `mode` | 0 to 3 | 3 | | The `mode` at startup |
 | `verbose` | 0 to 4 | 1 | | How much is printed |

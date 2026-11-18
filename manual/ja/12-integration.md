@@ -85,7 +85,14 @@ feature setboard=1 playother=1 ping=1 draw=0 sigint=0 sigterm=0 analyze=1 myname
 ```
 
 - プロトコルで動いているときも、対局の強さは `level` と持ち時間で決まり、book も使われます。`level` は、NBoard の `set depth`、XBoard の `sd` でも指定できます。
-- NBoard と相手の時間（v4.5.5-newedax.14 から）：`-ponder on`（または `set ponder on`）にすると、Edax の `go` の手を GUI が `move` で返したところから、相手の時間にも考えます。相手が Edax の予想した手を打てば（`move`、またはその後の局面の `set game` で来れば）、次の `go` はその探索を続けます。`ping` では止まりません。`-keep-hash on`（または `set keep-hash on`）にすると、同じ対局の `set game` で置換表を残します。`-ponder on` を指定しなければ、NBoard では考えません。命令の並び：
+- NBoard と相手の時間（v4.5.5-newedax.14 から）：
+  - `-ponder on`（または `set ponder on`）にすると、相手の時間にも考えます。考え始めるのは、Edax の `go` の手を、GUI が `move` で返したところからです。
+  - 相手が Edax の予想した手を打てば、次の `go` はその探索を続けます。相手の手は、`move` で来ても、その後の局面の `set game` で来てもかまいません。
+  - `ping` では、相手の時間の思考は止まりません。
+  - `-keep-hash on`（または `set keep-hash on`）にすると、同じ対局の `set game` で、ハッシュ表を残します。
+  - `-ponder on` を指定しなければ、NBoard では相手の時間に考えません。
+
+  コマンドの並び：
 
   ```
   nboard 1
@@ -181,9 +188,21 @@ int main(void)
   - `edax_book_save_checked`：book を保存し、保存できたかどうかを返します。
   - `edax_book_failed`：直前の book の処理が、局面を追加できなかったかどうかを返します。
 - v4.5.5-nikque.12 で追加：`edax_book_leaf_recalculate`・`edax_book_leaf_recalculate2`・`3`・`4`（`book leaf recalculate` 系列のコマンド。v4.5.5-nikque.13 までの名前は `book leaf-recalculate`）。
-- `edax_book_keep_unread_file(file)`（v4.5.5-nikque.16 で追加）：読めなかった book のファイルを、別のファイルに保存した book で置き換える前に、`<file>.damaged` として残します。置き換えてよければ 1、置き換えてはいけなければ 0 を返します。
-- v4.5.5-nikque.27 で追加：`edax_book_file_status(file)`。読み込むはずだった book のファイルがどうなったかを返します。0 は置き換えてよい（読めた、または読み込みに失敗していない）、1 は book として読めなかった（壊れている。保存の前に `.damaged` として残す）、2 は開けなかった（ほかのプログラムが共有なしで開いていた、など。2 秒ほど待っても開けなかった。どの保存も置き換えず、`edax_book_keep_unread_file` は 0 を返す）。初期化の後に呼べば、開けなかった book のファイルに気づいて、空の book に学習を始めずに止められます。初期化の前は −1 です。
-- v4.5.5-nikque.26 で追加：`edax_book_deviate_export(base, x, y, file, which)`。`book deviate`（`base` が 1）・`book deviate2`（2）・`book deviate3`（3）の `export` です（[7.3](07-book-learning.md)）。book を広げずに、今の局面からたどる手順をファイル `file` に書き出します。`which` は 0 が `leaf`、1 が `ends`、2 が `all` です。書いた行の数を返します（今の局面が book にないときは 0 で、空のファイルを作ります）。引数が正しくないとき、ファイルに書けないとき、メモリが足りないときは −1 を返します。`x`・`y` の範囲はコマンドと同じです（`book deviate2`・`book deviate3` の `y` は 254 まで。超えるときは、コマンドと同じ警告を出して 254 にします）。
+- `edax_book_keep_unread_file(file)`（v4.5.5-nikque.16 で追加）：読めなかった book のファイルを、別のファイルに保存した book で置き換える前に、`<file>.damaged` として残します。
+  - 置き換えてよければ 1、置き換えてはいけなければ 0 を返します。
+- v4.5.5-nikque.27 で追加：`edax_book_file_status(file)`。読み込むはずだった book のファイルがどうなったかを返します。
+  - 0：置き換えてよい（読めた、または読み込みに失敗していない）。
+  - 1：book として読めなかった（壊れている）。保存の前に `.damaged` として残す。
+  - 2：開けなかった（ほかのプログラムが共有なしで開いていた、など）。2 秒ほど待っても開けなかった。どの保存もこのファイルを置き換えず、`edax_book_keep_unread_file` は 0 を返す。
+  - 初期化の前は −1 です。
+  - 初期化の後に呼べば、開けなかった book のファイルに気づけます。空の book に学習を始めずに、止められます。
+- v4.5.5-nikque.26 で追加：`edax_book_deviate_export(base, x, y, file, which)`。`book deviate`・`book deviate2`・`book deviate3` の `export` です（[7.3](07-book-learning.md)）。
+  - book を広げずに、今の局面からたどる手順を、ファイル `file` に書き出します。
+  - `base` は、1 が `book deviate`、2 が `book deviate2`、3 が `book deviate3` です。
+  - `which` は、0 が `leaf`、1 が `ends`、2 が `all` です。
+  - `x`・`y` の範囲は、コマンドと同じです。`book deviate2`・`book deviate3` の `y` は 254 までです。超えるときは、コマンドと同じ警告を出して 254 にします。
+  - 書いた行の数を返します。今の局面が book にないときは 0 を返し、空のファイルを作ります。
+  - 引数が正しくないとき、ファイルに書けないとき、メモリが足りないときは −1 を返します。
 
 **元の libedax（Edax 4.4）との違い**
 
@@ -217,7 +236,16 @@ int main(void)
 **テスト**
 
 - `tests/libedax_test.c` が全関数を呼び出します。
-  - 項目の数：147 項目。v4.5.5-nikque.9 では 191 項目、v4.5.5-nikque.10 では 193 項目、v4.5.5-nikque.12 では 197 項目、v4.5.5-nikque.13 では 198 項目。newedax.11 では 220 項目（書き出しの 14 項目を含む）、newedax.12 では 281 項目（book が変わった後の書き出しの 9 項目、日本語の名前のフォルダーにある開けない book の 8 項目、読めなかった book の印・別の書き方の名前・`edax_book_file_status` の 21 項目、起動のときにほかのプログラムが開いていた book の 17 項目、`edax_book_new` の深さの 4 項目、`edax_hint` の止めの 2 項目、合わせて 61 項目を足した。うち 28 項目は Windows だけ）。
+  - 項目の数：147 項目。
+    - v4.5.5-nikque.9 では 191 項目、v4.5.5-nikque.10 では 193 項目、v4.5.5-nikque.12 では 197 項目、v4.5.5-nikque.13 では 198 項目です。
+    - newedax.11 では 220 項目です（書き出しの 14 項目を含む）。
+    - newedax.12 では 281 項目です。次の、合わせて 61 項目を足しました（うち 28 項目は Windows だけ）。
+      - book が変わった後の書き出し：9 項目
+      - 日本語の名前のフォルダーにある、開けない book：8 項目
+      - 読めなかった book のマーク・別の書き方の名前・`edax_book_file_status`：21 項目
+      - 起動のときに、ほかのプログラムが開いていた book：17 項目
+      - `edax_book_new` の深さ：4 項目
+      - `edax_hint` の止め：2 項目
   - Windows 3 種と Linux 3 種で合格しました。
   - 元の libedax でも、対応する項目は同じ結果です。
 - libedax4dart 7.67.0 のテスト 29 件のうち、28 件が合格しました。
@@ -298,8 +326,9 @@ GUI のソフトが、book をたどって数える計算を Edax に任せる�
 | 3〜7 | その手の後の局面で `book deviate 1 1`〜`book deviate 5 5` を実行しても、何も広げない |
 
 - 基準のコマンドは `base=deviate2`・`base=deviate3` に、範囲は `stages=1/1,2/2,3/3,4/4,5/5` の形で変えられます。
-- 求めた精度の段階は、book が変わるまで覚えています。手の後の局面の段階は、今の局面で覚えている段階と、その先の局面で覚えている段階からわかる所を歩かずに決めます（v4.5.5-nikque.23 から。答えは同じです）。
-- `book missing` は、覚えている精度の段階から、聞いた範囲（`x=`・`y=`）で何も見つからないとわかる局面では、歩かずに 0 本と答えます（v4.5.5-nikque.24 から。答えは同じです）。
+- 求めた精度の段階は、book が変わるまで覚えています。
+- 手の後の局面の段階を求めるときは、覚えている段階からわかる所を、book をたどらずに決めます。使うのは、今の局面で覚えている段階と、その先の局面で覚えている段階です（v4.5.5-nikque.23 から。答えは同じです）。
+- `book missing` は、聞いた範囲（`x=`・`y=`）で何も見つからないことが、覚えている精度の段階からわかる局面では、book をたどらずに 0 本と答えます（v4.5.5-nikque.24 から。答えは同じです）。
 
 **うみがめ数**（`umi=黒:白`）
 
@@ -310,10 +339,14 @@ GUI のソフトが、book をたどって数える計算を Edax に任せる�
   - `umi=loss x=… y=…`：1 手の損失と合計の損失
   - `umi=range lo=… hi=…`：評価値の範囲
 - 範囲が広いと、最小とは限らない値に `exact=0` が付きます。
-  - `exact=0` が付く値は、組み立てた環境（Windows・Linux など）によらず同じです（v4.5.5-nikque.25 から）。
-- 求めたうみがめ数は、book が変わるまで覚えています。手の後の局面を数えるとき、その先の 1・2 手目の局面の値も覚え、その局面が今の局面になったときに数え直しません（v4.5.5-nikque.24 から）。
-  - 覚えるのは、`umi=best` では全部の局面、`umi=loss` では損失 0 で着いた局面、`umi=range` では手番が手の後の局面と同じ局面（`lo=-hi` のときは全部）です。`exact=0` が付く数え方の途中の値は覚えません。
-  - 答えは同じです。ただし、その局面だけから数えると `exact=0` が付く手が、前の局面で覚えたちょうどの値（`exact=0` なし、より小さいか同じ値）になることがあります。
+  - `exact=0` が付く値は、ビルドした環境（Windows・Linux など）によらず同じです（v4.5.5-nikque.25 から）。
+- 求めたうみがめ数は、book が変わるまで覚えています（v4.5.5-nikque.24 から）。
+  - 手の後の局面を数えるときは、その先の 1 手目・2 手目の局面の値も覚えます。その局面が今の局面になったときは、数え直しません。
+  - 覚えるのは、次の局面です。`exact=0` が付く数え方の途中の値は、覚えません。
+    - `umi=best`：全部の局面
+    - `umi=loss`：損失 0 で着いた局面
+    - `umi=range`：手番が手の後の局面と同じ局面（`lo=-hi` のときは全部）
+  - 答えは同じです。ただし、その局面だけから数えると `exact=0` が付く手が、前の局面で覚えたちょうどの値になることがあります。この値には `exact=0` が付かず、`exact=0` の付いた値より小さいか同じです。
 
 例（テスト用の book）：
 
@@ -336,7 +369,11 @@ GUI のソフトが、book をたどって数える計算を Edax に任せる�
 - book にない手、精度の段階、うみがめ数（`part=umi`）、局面の数（`part=count`）の順に答えます。
 - 大きな book の序盤では、局面の数に時間がかかります。`parts=stage,umi` のように、一部だけを求めることもできます。
 - `lines=` は、book に書かれた終わっていない進行の数です。すぐに出ます。合流は進行ごとに数えます。
-- 局面の数（`part=count`）と `book levels`（`scope=all` を除く）の数は、局面ごとに、book が変わるまで覚えています。数えた局面が今の局面になって `book levels` を送ったときや、同じ手をもう一度数えるときは、book をたどり直しません（v4.5.5-nikque.24 から。答えは同じです）。
+- 局面の数（`part=count`）と、`book levels`（`scope=all` を除く）の数は、局面ごとに、book が変わるまで覚えています（v4.5.5-nikque.24 から）。
+  - 次のときは、book をたどり直しません。答えは同じです。
+    - 数えた局面が今の局面になって、`book levels` を送ったとき
+    - 同じ手をもう一度数えるとき
+
 **`book bestlines`**
 
 - 答えは `@end id=N lines=… ends=… incomplete=… incomplete_ends=… positions=… written=…` の 1 行です。
@@ -344,6 +381,7 @@ GUI のソフトが、book をたどって数える計算を Edax に任せる�
   - `ends`：端の局面ごとの数
   - `incomplete`：完全読みに届かない端の数
 - `file=` のファイルには、端の局面ごとに 1 行、今の局面までの手順から端までの手順を書きます。`which=incomplete` を付けると、完全読みに届かない端だけを書きます。
+
 **`book findline`**
 
 - `target=` は、a1〜h8 の 64 マスの後に手番（`X` か `O`）を続けた 65 文字です。マスは `X` が黒、`O` が白、`-` が空きで、`setboard` と同じです。
@@ -356,7 +394,8 @@ GUI のソフトが、book をたどって数える計算を Edax に任せる�
   - `positions`：たどった局面の数
 - `target` が book にないときは `notinbook=1`、今の局面が book にないときは `startnotinbook=1` が付き、`count=0` です。
 - `n=` は 1〜100 です。
-**book reducecount**
+
+**`book reducecount`**
 
 - 答えは `@end id=N kept=… removed=… positions=… ms=…` の 1 行です。
   - `kept`：残る局面の数
@@ -369,11 +408,15 @@ GUI のソフトが、book をたどって数える計算を Edax に任せる�
   - 今の局面が book の深さより 2 つ以上先のとき：`deep=1` が付きます。
 - 今の局面から先の book が壊れているときは、数えずに `@error id=N damaged=1` と `@end id=N error=1` を返します（v4.5.5-nikque.21 から）。壊れているとは、すでに石のあるマスへの手や、同じ局面に戻る手のつながりがあることです。
 - GUI のソフトは、これで数を見せて確かめてから、`book reduce` を送れます。
-- 数えた結果は、その後の `book reduce` が使います（[8.4](08-book-maintenance.md)）。ほかの解析が印のメモリを要るときは捨てられ、`book reduce` は計算し直します（結果は同じ）。
+- 数えた結果は、その後の `book reduce` が使います（[8.4](08-book-maintenance.md)）。
+- ほかの解析がマークのためのメモリを必要とするときは、数えた結果は捨てられます。このときの `book reduce` は、計算し直します（結果は同じです）。
+
 ### 誤り・取り消し・書き方の決まり
 
 - 引数の誤りには、`@error id=N word=…` と `@end id=N error=1` と答えます。
-- メモリが足りないときは、`@error id=N memory=1` と `@end id=N error=1` と答えます。それより前に出た `@move` などの行は、その解析の一部だけです（v4.5.5-nikque.26 までは、`book moveinfo` だけ、足りなかった手の行を出さないまま、誤りのない `@end` を答えていました）。
+- メモリが足りないときは、`@error id=N memory=1` と `@end id=N error=1` と答えます。
+  - それより前に出た `@move` などの行は、その解析の一部だけです。
+  - v4.5.5-nikque.26 までは、`book moveinfo` だけが違いました。メモリが足りなかった手の行を出さないまま、誤りのない `@end` を答えていました。
 - 止めた解析には、`@cancel id=N` と答えます。
 - 番号 `id=` が整数（int の範囲）でないときは、解析も `stop` も行わず、`@error word=id` とだけ答えます。
 - コマンドの語は空白で区切ります。`"…"` の中は、空白も含めて 1 つの値です。その中の `id=` は番号ではありません。
@@ -381,7 +424,10 @@ GUI のソフトが、book をたどって数える計算を Edax に任せる�
 - `stop id=N` が、終わった後の解析や、まだ受け付けていない解析に届いたときは、`@cancel id=N state=none` と答えます。
   - 終わった解析は、その前に `@end id=N` を答えています。
   - 受け付ける前の解析は、その後で最後まで行い、`@end id=N` を答えます。
-  - v4.5.5-nikque.26 から、この答えに `export=1` が付きます（`@cancel id=N state=none export=1`）。`book deviate`・`deviate2`・`deviate3` の `export`（[7.3](07-book-learning.md)）を持つ印です。`export` を知らない前の版は、その語を読まずに book を広げるので、画面のソフトは、起動のときの `stop id=N` の答えでこの印を確かめてから送ってください。
+  - v4.5.5-nikque.26 から、この答えに `export=1` が付きます（`@cancel id=N state=none export=1`）。
+    - `export=1` は、`book deviate`・`deviate2`・`deviate3` の `export`（[7.3](07-book-learning.md)）を持つことを表します。
+    - `export` を知らない前の版は、その語を読まずに book を広げます。
+    - そのため、GUI のソフトは、起動のときに送った `stop id=N` の答えで `export=1` を確かめてから、`export` を送ってください。
 
 ### このマニュアルの作成で確かめたこと
 

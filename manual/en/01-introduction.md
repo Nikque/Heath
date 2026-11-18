@@ -13,7 +13,13 @@ This **fixed version** (`Nikque/edax-reversi-AVX`) is based on that v4.5.5. Its 
 - commands to grow and maintain a book (`book deviate2`, `book deviate3`, `book learn`, `book leaf recalculate`, `book leaf expand`, `book fill2`, …);
 - a library (libedax) for calling Edax from other programs.
 
-The book file format is the same as in the original Edax 4.5.5: a book from the original Edax can be read without conversion. The evaluation data (`eval.dat`) is not: since v4.5.5-newedax.13 the evaluation has 64 feature slots (or 48 in the 48-slot build), and each build reads the `eval.dat` of its release ZIP; the `eval.dat` of the original Edax and of eval2 cannot be used (they are read with a warning, but the evaluation is then wrong).
+The book file format is the same as in the original Edax 4.5.5. A book from the original Edax can be read without conversion.
+
+The evaluation data (`eval.dat`) is different:
+
+- Since v4.5.5-newedax.13, the evaluation has 64 feature slots (or 48 in the 48-slot build).
+- Each build reads the `eval.dat` of its release ZIP.
+- The `eval.dat` of the original Edax and of eval2 cannot be used. They are read with a warning, but the evaluation is then wrong.
 
 **Heath (formerly newedax)** is the eval2 line of this fixed version ported to C++23. Its versions up to v4.5.5-newedax.15 are named `v4.5.5-newedax.N`.
 
