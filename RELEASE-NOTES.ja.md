@@ -45,7 +45,7 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 
 **互換性**
 
-- 印は、局面の level の 1 バイトの上 2 ビットです（book のファイルの 2 つの形式とも）。大きさと形式は変わらず、印のない book は前と同じです。**`book correct`・`book leaf recalculate` が終わる前に保存された book には印があり、v4.5.5-newedax.15 までの版では壊れた book として読まれません。** 終わった book には印がありません。評価の道具（`tools/eval`）は、印を外して level を読みます。
+- 印は、局面の level の 1 バイトの上 2 ビットです（book のファイルの 2 つの形式とも）。大きさと形式は変わらず、印のない book は前と同じです。**`book correct`・`book leaf recalculate` が終わる前に保存された book には印があり、v4.5.5-newedax.15 までの版では壊れた book とみなされ、読み込めません。** 終わった book には印がありません。評価の道具（`tools/eval`）は、印を外して level を読みます。
 - 探索は変わりません：v4.5.5-newedax.15 と同じ評価値・ノード数・読み筋です。
 
 **確かめたこと**：`tests/book-resume.py`（41 項目。形式 2 も）、C 版の book の試験一式 14 組が v4.5.5-newedax.15 と同じ book（保存の日時のほか。時計の乱数で学習する組は `-book-seed 1` で）、`tests/regression.cpp`（54 項目）、2 つの組み立ての配布の実行ファイルが v4.5.5-newedax.15 と同じ評価値・ノード数・読み筋。

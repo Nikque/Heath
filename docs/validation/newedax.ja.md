@@ -9,7 +9,7 @@
 
 確かめたこと：
 
-- `tests/book-resume.py`（新しい試験、41 項目、1 つの論理 CPU）：1 スレッドと 2 スレッドの `book correct`（誤った値と印を付けた局面は探索し直さず、印は外れ、3 回目で誤りを見つける）、`book deepen`、`book leaf recalculate3`、`book learn`（学習の記録が書かれたところで止め、`.store` に保存された book から続けるものも）、形式 2 で保存して読み直しても印が残ること、v4.5.5-newedax.15 が印の付いた book を壊れた book として読むこと。
+- `tests/book-resume.py`（新しい試験、41 項目、1 つの論理 CPU）：1 スレッドと 2 スレッドの `book correct`（誤った値と印を付けた局面は探索し直さず、印は外れ、3 回目で誤りを見つける）、`book deepen`、`book leaf recalculate3`、`book learn`（学習の記録が書かれたところで止め、`.store` に保存された book から続けるものも）、形式 2 で保存して読み直しても印が残ること、v4.5.5-newedax.15 が印の付いた book を壊れた book とみなして読み込まないこと。
 - C 版の book の試験一式 14 組（1 スレッド、`book-reproducible` なし。64 枠の組み立てと `eval.dat`）を、この源の組み立てと v4.5.5-newedax.15 で流した：13 組は保存の日時のほか同じファイル。S3（時計の乱数の種で `book learn`）は実行ごとに違い、`-book-seed 1` では両方とも同じ book。
 - `tests/regression.cpp`：54 項目すべて通過（64 枠、AVX-512）。
 - 配布の実行ファイル（64 枠と 48 枠、それぞれの組み立ての `eval.dat`。v4.5.5-newedax.13 のもの）：各組み立ての Windows の 5 種が、中盤 40 局面の level 12 で v4.5.5-newedax.15 と同じ評価値・ノード数・読み筋。fforum-20-39（1 スレッド）で同じ評価値と手、`-l 60` で手と評価値の誤り 0。v4.5.5-newedax.15 の直しの 1,205 局面（`-l 60`）で誤り 0。`tests/cassio-eof.py`（7 件）と `tests/nboard-ponder.py` が通過。各組み立ての DLL 3 種が API の 281 項目を通過。
