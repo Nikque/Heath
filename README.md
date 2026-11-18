@@ -1,15 +1,25 @@
 # Heath (formerly newedax)
 
-Heath (formerly newedax) is the Othello engine [Edax 4.5.5 nikque](https://github.com/Nikque/edax-reversi-AVX) (its eval2 line) ported to C++23, with a new evaluation function since v4.5.5-newedax.13: 64 feature slots (and a 48-slot build), trained again. At the same time it is about 60 Elo stronger than the eval2 evaluation; it uses less memory for books than the C version.
+Heath (formerly newedax) is the Othello engine [Edax 4.5.5 nikque](https://github.com/Nikque/edax-reversi-AVX) (its eval2 line) ported to C++23.
+
+- Since v4.5.5-newedax.13 it has a new evaluation function, trained again with 64 feature slots (and a 48-slot build).
+- With the same time per game, it is about 60 Elo stronger than with the eval2 evaluation.
+- It uses less memory for books than the C version.
 
 [日本語](#日本語) · [Download](https://github.com/Nikque/Heath/releases/latest) · [Manual](manual/en/README.md) · [Release notes](RELEASE-NOTES.md) · [Tests and measurements](docs/validation/newedax.en.md)
 
 ## Download and run
 
-1. Download a ZIP from the [latest release](https://github.com/Nikque/Heath/releases/latest) and unpack it: `edax-…-64.zip` (the default, 64 slots) or `edax-…-48.zip` (48 slots: faster per node, weaker at the same time). It contains executables for Windows (x64, x86) and Android, the libedax DLLs, the training tools, and the `eval.dat` of its build.
+1. Download a ZIP from the [latest release](https://github.com/Nikque/Heath/releases/latest) and unpack it. There are two ZIPs:
+   - `edax-…-64.zip`: the default, 64 slots.
+   - `edax-…-48.zip`: 48 slots, faster per node but weaker with the same time per game.
+
+   Each contains executables for Windows (x64, x86) and Android, the libedax DLLs, the training tools, and the `eval.dat` of its build.
 2. Open the `bin` folder and start the executable from **inside that folder**. On Windows, start with `wEdax-x86-64.exe`; use `-v3` (AVX2) or `-v4` (AVX-512) if your CPU supports it.
 
-The `bin/` folder of the repository holds only the data (`book.dat`, `config.ini`, and the `eval.dat` of eval2, which is not for the builds since v4.5.5-newedax.13: they read it with a warning, but their evaluation is then wrong; use the `eval.dat` of a release ZIP). Commands and settings are the same as the C version: see the [manual](manual/en/README.md).
+The `bin/` folder of the repository holds only the data: `book.dat`, `config.ini` and the `eval.dat` of eval2. That `eval.dat` is not for the builds since v4.5.5-newedax.13: they read it with a warning, but their evaluation is then wrong. Use the `eval.dat` of a release ZIP.
+
+Commands and settings are the same as the C version: see the [manual](manual/en/README.md).
 
 For Linux and macOS executables, use the C version ([edax-reversi-AVX releases](https://github.com/Nikque/edax-reversi-AVX/releases)).
 
@@ -49,13 +59,21 @@ GPL-3.0 ([LICENSE](LICENSE)). Based on Edax by Richard Delorme and [okuhara/edax
 
 ## 日本語
 
-Heath（旧名 newedax）は、オセロのエンジン [Edax 4.5.5 nikque](https://github.com/Nikque/edax-reversi-AVX)（eval2 の系列）を C++23 に移したものです。v4.5.5-newedax.13 から、評価関数を 64 枠（と 48 枠の版）で学習し直した新しいものにしました。同じ持ち時間で eval2 の評価関数より約 60 Elo 強く、book のメモリは C 版より少なくて済みます。
+Heath（旧名 newedax）は、オセロのエンジン [Edax 4.5.5 nikque](https://github.com/Nikque/edax-reversi-AVX)（eval2 の系列）を C++23 に移したものです。
+
+- v4.5.5-newedax.13 から、評価関数を 64 枠（と 48 枠の版）で学習し直した新しいものにしました。
+- 同じ持ち時間で、eval2 の評価関数より約 60 Elo 強くなりました。
+- book のメモリは C 版より少なくて済みます。
 
 [ダウンロード](https://github.com/Nikque/Heath/releases/latest) · [マニュアル](manual/ja/README.md) · [修正一覧](RELEASE-NOTES.ja.md) · [テストと実測の記録](docs/validation/newedax.ja.md)
 
 ### 使い始め方
 
-1. [最新の Release](https://github.com/Nikque/Heath/releases/latest) の ZIP をダウンロードして展開します。`edax-…-64.zip`（既定の 64 枠）か `edax-…-48.zip`（48 枠：1 節点あたりは速いが、同じ時間では弱い）です。Windows（x64・x86）と Android の実行ファイル、libedax の DLL、学習ツール、その版の `eval.dat` が入っています。
+1. [最新の Release](https://github.com/Nikque/Heath/releases/latest) の ZIP をダウンロードして展開します。ZIP は 2 種類あります。
+   - `edax-…-64.zip`：既定の 64 枠。
+   - `edax-…-48.zip`：48 枠。1 節点あたりは速いが、同じ持ち時間では弱い。
+
+   どちらにも、Windows（x64・x86）と Android の実行ファイル、libedax の DLL、学習ツール、その版の `eval.dat` が入っています。
 2. `bin` フォルダーを開き、**そのフォルダーの中から**実行ファイルを起動します。Windows なら、まず `wEdax-x86-64.exe` を使ってください。CPU が対応していれば `-v3`（AVX2）・`-v4`（AVX-512）が速くなります。
 
 リポジトリの `bin/` にはデータ（`book.dat`、`config.ini`、eval2 の `eval.dat`）だけがあります。eval2 の `eval.dat` は v4.5.5-newedax.13 からの版には使えません（警告を出して読みますが、評価が正しくなりません）。Release の ZIP の `eval.dat` を使ってください。コマンドと設定は C 版と同じです（[マニュアル](manual/ja/README.md)）。
