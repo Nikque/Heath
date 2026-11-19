@@ -15,7 +15,7 @@ import sys
 import time
 
 CASES = ['bool', 'short', 'ggf', 'edx', 'savefail', 'deviatesave', 'expandredo', 'analyze', 'enhance',
-         'core', 'nboard', 'gtp', 'gtptime', 'gtpreg', 'xboard', 'formats', 'pgnlong', 'pgnfen',
+         'core', 'solid-hash', 'nboard', 'gtp', 'gtptime', 'gtpreg', 'xboard', 'formats', 'pgnlong', 'pgnfen',
          'unsupported', 'bookio', 'truncated', 'corruptstartup', 'ggsclock', 'cassio', 'events',
          'missinglink', 'mergefile', 'linkstore', 'mergetwice', 'negamaxloop', 'learnline', 'hashlock',
          'lastgame', 'basereplace', 'keepunread', 'statsrange', 'gamescore', 'badinput', 'wthortrunc',
