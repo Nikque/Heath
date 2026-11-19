@@ -12,6 +12,7 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 
 | Heath（newedax） | C 版（nikque） | C 版（eval2） |
 |---|---|---|
+| heath.17 | nikque.30 | eval2.18 |
 | heath.16 | nikque.29 | eval2.17 |
 | newedax.15 | nikque.28 | eval2.16 |
 | newedax.14 | nikque.27 | eval2.15 |
@@ -28,6 +29,24 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 | newedax.3 | nikque.18 | eval2.6 |
 | newedax.2 | nikque.18 | eval2.6 |
 | newedax.1 | nikque.17 | eval2.5 |
+
+---
+
+## v4.5.5-heath.17
+
+[v4.5.5-nikque.30](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.ja.md#v455-nikque30) の変更を取り込みました。SVE の評価更新は 64 枠版と 48 枠版の両方に対応します。
+
+**不具合の修正**
+
+- 度外石の色をそろえた盤面を終盤の置換表のキーに使うと、勝者が変わる局面で空きマスの配点を誤り、完全読みの探索境界がずれることがありました。実際の盤面をキーに使うようにしました。
+
+**互換性**
+
+- 修正の影響を受ける局面では、探索結果や探索ノード数が変わることがあります。評価関数、`eval.dat`、book のファイル形式は前の版と同じです。
+
+**未確認**。対局での強さ、実 book、SVE の実機での動作と速度。
+
+[検証記録](docs/validation/newedax.ja.md#v455-heath17)
 
 ---
 

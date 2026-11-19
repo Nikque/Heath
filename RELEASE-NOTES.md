@@ -12,6 +12,7 @@ Each version contains all changes of the C versions on the same row.
 
 | Heath (newedax) | C (nikque) | C (eval2) |
 |---|---|---|
+| heath.17 | nikque.30 | eval2.18 |
 | heath.16 | nikque.29 | eval2.17 |
 | newedax.15 | nikque.28 | eval2.16 |
 | newedax.14 | nikque.27 | eval2.15 |
@@ -28,6 +29,24 @@ Each version contains all changes of the C versions on the same row.
 | newedax.3 | nikque.18 | eval2.6 |
 | newedax.2 | nikque.18 | eval2.6 |
 | newedax.1 | nikque.17 | eval2.5 |
+
+---
+
+## v4.5.5-heath.17
+
+This release includes the changes from [v4.5.5-nikque.30](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque30). The SVE evaluation update supports both the 64-slot and 48-slot builds.
+
+**Fixes**
+
+- Normalizing the color of solid discs in an endgame transposition-table key could produce an invalid exact-search bound. When the winner changes, empty squares are awarded to the other side. The key now uses the actual board.
+
+**Compatibility**
+
+- The fix can change search results or node counts in affected positions. The evaluation function, `eval.dat`, and the book file format are the same as in the previous release.
+
+**Not checked**. Playing strength, a production book, and SVE behavior and speed on hardware.
+
+[Tests and measurements](docs/validation/newedax.en.md#v455-heath17)
 
 ---
 
