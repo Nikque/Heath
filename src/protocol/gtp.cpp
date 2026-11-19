@@ -213,7 +213,8 @@ void ui_loop_gtp(UI *ui)
 				gtp_fail("illegal move", id, has_id);
 			}
 
-		} else if (string_is(cmd, "genmove")) {
+		} else if (string_is(cmd, "genmove", "reg_genmove")) {
+			const bool update = string_is(cmd, "genmove");
 			char m[4];
 			gtp_parse_color(param, &color);
 			if (color == EMPTY) {
@@ -227,9 +228,13 @@ void ui_loop_gtp(UI *ui)
 					continue;
 				}
 			}
-			play_go(play, true);
-			if (play_get_last_move(play)->x == PASS) gtp_send("pass", id, has_id);
-			else gtp_send(move_to_string(play_get_last_move(play)->x, WHITE, m), id, has_id);
+			if (play_is_game_over(play)) {
+				gtp_send("pass", id, has_id);
+				continue;
+			}
+			play_go(play, update);
+			if (play->result.move == PASS) gtp_send("pass", id, has_id);
+			else gtp_send(move_to_string(play->result.move, WHITE, m), id, has_id);
 
 		// optional GTP commands but needed or supported by Quarry
 		} else if (string_is(cmd, "undo")) {
@@ -287,24 +292,6 @@ void ui_loop_gtp(UI *ui)
 			} else {
 				gtp_fail(play->error_message, id, has_id);
 			}
-
-		} else if (string_is(cmd, "reg_genmove")) {
-			char m[4];
-			gtp_parse_color(param, &color);
-			if (color == EMPTY) {
-				gtp_fail("syntax error (wrong or missing color)", id, has_id);
-				continue;
-			} else if (color != play->player) {
-				if (play_must_pass(play)) {
-					play_move(play, PASS);
-				} else {
-					gtp_fail("wrong color", id, has_id);
-					continue;
-				}
-			}
-			play_go(play, false);
-			if (play->result.move == PASS) gtp_send("pass", id, has_id);
-			else gtp_send(move_to_string(play->result.move, WHITE, m), id, has_id);
 
 		// optional commands
 		} else if (string_is(cmd, "showboard")) {
