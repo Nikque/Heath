@@ -4,6 +4,18 @@ Tests and measurements done for each version, moved without changes from the for
 
 For what changed, see the [release notes](../../RELEASE-NOTES.md). "Above" and "below" in the text refer to positions in the former document.
 
+## v4.5.5-heath.18
+
+- The five executables in each of the 64-slot and 48-slot Heath builds solved 24 synthetic endgame positions scored by an independent implementation with zero move or score errors. All seven Cassio EOF cases passed.
+- All 281 API checks passed for each of the three DLLs.
+- The x86-64-v4 executable was retested for all seven issues. The checks covered database summaries, an estimate with known error, GTP at game end and a legal pass, `q` in XBoard, GTP, and NBoard, a local GGS mock, and both help entries.
+- For trials with totals of 2 and 4, `estimate` returned a mean of 3 and an error of 0.7071068.
+- Android executables and shared libraries were built for arm64-v8a and armeabi-v7a in both slot configurations. ELF architectures and the library API symbol were checked.
+
+Production books, playing strength, communication with a live GGS server, and operation on Android devices remain untested.
+
+---
+
 ## v4.5.5-heath.17
 
 - The previous build returned an incorrect upper bound of +8 for a position whose exact score is +10. The fixed build returned +10.

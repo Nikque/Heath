@@ -12,6 +12,7 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 
 | Heath（newedax） | C 版（nikque） | C 版（eval2） |
 |---|---|---|
+| heath.18 | nikque.31 | eval2.19 |
 | heath.17 | nikque.30 | eval2.18 |
 | heath.16 | nikque.29 | eval2.17 |
 | newedax.15 | nikque.28 | eval2.16 |
@@ -29,6 +30,24 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 | newedax.3 | nikque.18 | eval2.6 |
 | newedax.2 | nikque.18 | eval2.6 |
 | newedax.1 | nikque.17 | eval2.5 |
+
+---
+
+## v4.5.5-heath.18
+
+[v4.5.5-nikque.31](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.ja.md#v455-nikque31) と同じ7件を修正しました。データベースの完了件数、見積もりの誤差、対話コマンドと外部プロトコルが対象です。
+
+**不具合の修正**
+
+- 終局での GTP の応答を修正しました。XBoard・GTP・NBoard の `q` と GGS の標準入力終了も処理を見直しました。
+
+**互換性**
+
+- 前の版の `eval.dat` と book を引き続き使えます。探索・学習の設定も前の版と同じです。
+
+**未確認**。実 book、対局での強さ、実際の GGS サーバーとの通信。
+
+[検証記録](docs/validation/newedax.ja.md#v455-heath18)
 
 ---
 

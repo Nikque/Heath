@@ -12,6 +12,7 @@ Each version contains all changes of the C versions on the same row.
 
 | Heath (newedax) | C (nikque) | C (eval2) |
 |---|---|---|
+| heath.18 | nikque.31 | eval2.19 |
 | heath.17 | nikque.30 | eval2.18 |
 | heath.16 | nikque.29 | eval2.17 |
 | newedax.15 | nikque.28 | eval2.16 |
@@ -29,6 +30,24 @@ Each version contains all changes of the C versions on the same row.
 | newedax.3 | nikque.18 | eval2.6 |
 | newedax.2 | nikque.18 | eval2.6 |
 | newedax.1 | nikque.17 | eval2.5 |
+
+---
+
+## v4.5.5-heath.18
+
+This release includes the seven fixes from [v4.5.5-nikque.31](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque31) for database summaries, estimate errors, command help, and external protocols.
+
+**Fixes**
+
+- Fixed the GTP response at game end and the handling of `q` in XBoard, GTP, and NBoard. GGS now handles the end of standard input locally.
+
+**Compatibility**
+
+- The previous release's `eval.dat`, books, and search and learning settings remain compatible.
+
+**Not checked.** Production books, playing strength, and communication with a live GGS server.
+
+[Tests and measurements](docs/validation/newedax.en.md#v455-heath18)
 
 ---
 
