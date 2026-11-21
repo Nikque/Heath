@@ -123,7 +123,25 @@ constexpr int HASH_N_WAY = 4;
 constexpr int HASH_ALIGNED = 1;
 
 /** Thread local hash size per thread (in number of bits) */
+#ifdef THREAD_LOCAL_HASH_BITS
+constexpr int THREAD_LOCAL_HASH_SIZE = THREAD_LOCAL_HASH_BITS;
+#else
 constexpr int THREAD_LOCAL_HASH_SIZE = 10;
+#endif
+
+/** Thread local hash size per thread for 4 empties (in number of bits; with ENDGAME_HASH4) */
+#ifdef THREAD_LOCAL_HASH4_BITS
+constexpr int THREAD_LOCAL_HASH4_SIZE = THREAD_LOCAL_HASH4_BITS;
+#else
+constexpr int THREAD_LOCAL_HASH4_SIZE = 14;
+#endif
+
+/** Thread local hash size per thread for 5 and 6 empties (in number of bits; with ENDGAME_HASH56) */
+#ifdef THREAD_LOCAL_HASH56_BITS
+constexpr int THREAD_LOCAL_HASH56_SIZE = THREAD_LOCAL_HASH56_BITS;
+#else
+constexpr int THREAD_LOCAL_HASH56_SIZE = 14;
+#endif
 
 /** PV extension (solve PV alone sooner) */
 constexpr bool USE_PV_EXTENSION = true;
