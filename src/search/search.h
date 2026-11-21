@@ -89,6 +89,8 @@ typedef struct Search {
 	struct Search *child[MAX_THREADS];            /**< child search */
 	struct Search *master;                        /**< master search (parent of all searches)*/
 	volatile int n_child;                         /**< search child number */
+	struct Task *lazy[MAX_THREADS];               /**< lazy helpers at the root (search-b) */
+	int n_lazy;                                   /**< number of lazy helpers */
 
 	int depth;                                    /**< depth level */
 	int selectivity;                              /**< selectivity level */
@@ -103,10 +105,18 @@ typedef struct Search {
 		bool can_update;                          /**< flag allowing to extend time */
 		long long  mini;                          /**< minimal alloted time */
 		long long  maxi;                          /**< maximal alloted time */
+		long long  base;                          /**< time of the move (time_ext: per-move time) */
+		long long  start;                         /**< time when the thinking on this move began (time_ext) */
+		long long  last_iter, prev_iter;          /**< times of the last two iterations (time_ext) */
+		long long  iter_start;                    /**< time when the current iteration began (time_ext) */
+		double     instability;                   /**< changes of the best move, decaying (time_ext) */
+		int        last_move, last_score;         /**< best move and score after the last iteration (time_ext) */
 	} time;                                       /**< time */
 	MoveList movelist;                            /**< list of moves */
 	int height;                                   /**< search height from root */
 	NodeType node_type[GAME_SIZE];                /**< node type (pv node, cut node, all node) */
+	short *corr;                                  /**< correction history of the probcut gate (search-b, thread local) */
+	unsigned char pv_dev[GAME_SIZE];              /**< moves off the principal variation from the root (search-b, probcut) */
 	Bound stability_bound;                        /**< score bounds according to stable squares */
 
 	struct {
@@ -114,6 +124,7 @@ typedef struct Search {
 		int selectivity;                          /**< final selectivity */
 		long long time;                           /**< time in sec. */
 		bool time_per_move;                       /**< time_per_move or per game ?*/
+		long long time_max;                       /**< longest time of a move when it may stretch (0: fixed, as before) */
 		int verbosity;                            /**< verbosity level */
 		bool keep_date;                           /**< keep date */
 		const char *header;                       /**< header for search output */
@@ -156,6 +167,8 @@ void search_alloc_thread_hash(Search*);
 
 void search_set_game_time(Search*, const long long);
 void search_set_move_time(Search*, const long long);
+void search_set_move_time_limit(Search*, const long long, const long long);
+void search_iteration_done(Search*, const int, const int);
 void search_time_init(Search*);
 void search_time_reset(Search*, const Board*);
 void search_adjust_time(Search*, const bool);
@@ -198,6 +211,7 @@ int search_solve_0(const Search*);
 int NWS_endgame(Search*, const int);
 
 int search_eval_0(Search*);
+int lmr_reduction(const Search*, const int, const int, const bool);
 int search_eval_1(Search*, int, int, unsigned long long);
 #ifdef EVAL_LEAF_HOOK
 extern void (*eval_leaf_hook)(const Board *board);	// (midgame.cpp)

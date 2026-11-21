@@ -400,6 +400,7 @@ int PVS_root(Search *search, const int alpha, const int beta, const int depth)
 				if (depth > search->options.multipv_depth && node_split(&node, move)) {
 				} else {
 					search_update_midgame(search, move);
+					if (options.pc_dev_root) ++search->pv_dev[search->height];
 						move->score = -search_route_PVS(search, -alpha - 1, -alpha, depth - 1, &node);
 						if (alpha < move->score && move->score < beta) {
 							search->node_type[search->height] = PV_NODE;
@@ -630,6 +631,57 @@ static bool get_last_level(Search *search, int *depth, int *selectivity)
  * @param alpha Alpha bound.
  * @param beta Beta bound.
  */
+
+/**
+ * @brief Stop the lazy helpers of the root and wait for them (search-b).
+ *
+ * @param search Search.
+ */
+static void lazy_stop(Search *search)
+{
+	for (int i = 0; i < search->n_lazy; ++i) search_set_state(search->lazy[i]->search, STOP_PARALLEL_SEARCH);
+	for (int i = 0; i < search->n_lazy; ++i) while (search->lazy[i]->run) cpu_pause();
+	search->n_lazy = 0;
+}
+
+/**
+ * @brief Start the lazy helpers of the root for an iteration (search-b, lazy k; after run/mklz.py of 2026-11-03).
+ *
+ * Idle tasks search the root, with no split, and only fill the shared hash table: during the iterative deepening
+ * 2 or 4 plies deeper; during the iterative selectivity, at the same depth with 1 or 2 more selectivity levels
+ * (a score of a higher selectivity is used by a lower one). The other tasks split the tree as before.
+ *
+ * @param search Search.
+ * @param depth Depth of the iteration.
+ * @param selective The iteration is one of the iterative selectivity.
+ */
+static void lazy_start(Search *search, const int depth, const bool selective)
+{
+	lazy_stop(search);
+	if (options.lazy <= 0 || depth < options.lazy_min || !search->allow_node_splitting) return;
+	if (selective && search->selectivity >= search->options.selectivity) return;
+	for (int i = 0; i < options.lazy && search->n_lazy < MAX_THREADS; ++i) {
+		const int step = 1 + (i & 1);
+		const int d = selective ? depth : depth + 2 * step;
+		if (!selective && d >= search->eval.n_empties) break;
+		if (selective && search->selectivity + step > search->options.selectivity) break;
+		Task *task = task_stack_get_idle_task(search->tasks);
+		if (task == NULL) break;
+		task->node = NULL;
+		task->move = NULL;
+		search_clone(task->search, search);
+		task->search->allow_node_splitting = false;
+		task->search->stop = RUNNING;
+		task->lazy_sel = selective ? search->selectivity + step : -1;
+		task->lazy_depth = d;
+		search->lazy[search->n_lazy++] = task;
+		lock(task);
+			task->run = true;
+			condition_signal(task);
+		unlock(task);
+	}
+}
+
 void iterative_deepening(Search *search, int alpha, int beta)
 {
 	Result *result = search->result;
@@ -776,10 +828,12 @@ void iterative_deepening(Search *search, int alpha, int beta)
 	// midgame : iterative depth
 	for (search->depth = start; search->depth < end; search->depth += 2) {
 		search->depth_pv_extension = get_pv_extension(search->depth, search->eval.n_empties);
+		lazy_start(search, search->depth, false);
 		score = aspiration_search(search, SCORE_MIN, SCORE_MAX/*alpha, beta*/, search->depth, score);	// https://github.com/eukaryo/edax-reversi-AVX-v446mod2
 		if (!search_continue(search)) return;
 		if (abs(score) >= SCORE_MAX - 1 && search->depth > end - ITERATIVE_MIN_EMPTIES && search->options.depth >= search->eval.n_empties) break;
 	}
+	lazy_stop(search);
 	search->depth = end;
 
 	// switch to endgame
@@ -798,6 +852,7 @@ void iterative_deepening(Search *search, int alpha, int beta)
 			search->selectivity = search->options.selectivity;
 		}
 		if (search->selectivity == search->options.selectivity) search_adjust_time(search, true);
+		lazy_start(search, search->depth, true);
 		score = aspiration_search(search, alpha, beta, search->depth, score);
 		if (!search_continue(search)) return;
 	}
@@ -823,6 +878,7 @@ void* search_run(void *v)
 	Move *move;
 
 	search->stop = RUNNING;
+	search->pv_dev[0] = 0;
 
 	//initialisations
 	search->n_nodes = 0;
@@ -861,7 +917,9 @@ void* search_run(void *v)
 	}
 	
 	// search using iterative deepening (& widening).
+	search->n_lazy = 0;
 	iterative_deepening(search, options.alpha, options.beta);
+	lazy_stop(search);
 
 	// finalizations
 	search->result->n_nodes = search_count_nodes(search);

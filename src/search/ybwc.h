@@ -33,6 +33,8 @@ typedef struct Task {
 	struct Search *search;       /**< search data */
 	struct Node *node;           /**< node splitted */
 	struct Move *move;           /**< move to search */
+	volatile int lazy_depth;     /**< lazy helper (search-b): depth searched at the root (0: a split) */
+	volatile int lazy_sel;       /**< lazy helper: first selectivity of a helper of the iterative selectivity (-1: deepening) */
 	Thread thread;               /**< thread */
 	unsigned long long n_calls;  /**< call counter */
 	unsigned long long n_nodes;  /**< nodes counter */

@@ -77,6 +77,14 @@ Options options = {
 	.speed_set = false, // speed given by the user (else measured)
 	.level_set = false, // level given by the user (else no level cap with a time control)
 	.probcut_model = 1, // probcut model: refit (v4.5.5-newedax.13: the model of the measures of the 64 and the 48 slots)
+	// search-b (2026-11-22): all off, the search of v4.5.5-heath.19
+	.time_ext = 0, .time_ext_max = 2.0, .time_ext_h = 0.5, .time_ext_hard = 1, .time_model = 0,
+	.sort_eval_shift = {2, 1, 0}, .sort_min_depth = 0,
+	.split_probe = true,
+	.pc_r = 1.0, .pc_end = 1.0, .pc_dev_d0 = 0, .pc_dev_k = 0.0, .pc_dev_fmin = 1.0, .pc_dev_root = true, .pc_mob = {0.0, 0.0, 0.0},
+	.corr = false, .corr_end = true,
+	.lmr = 0,
+	.lazy = 0, .lazy_min = 16,
 	.book_depth = 0, // book depth: auto (the depth of the loaded book)
 	.book_format = 0, // form of the saved book: auto (the form of the loaded file, or of the file a new book replaces)
 	.book_store_tasks = 0, // games learned at the same time: auto
@@ -339,6 +347,38 @@ int options_read(const char *option, const char *value)
 
 		else if (string_is(option, "probcut-d")) parse_real(value, &options.probcut_d);
 		else if (string_is(option, "probcut-model")) option_choice(option, value, "standard", "refit", &options.probcut_model);
+
+		// search-b (2026-11-22)
+		else if (string_is(option, "time-ext")) options.time_ext = option_int(option, value, options.time_ext);
+		else if (string_is(option, "time-ext-max")) parse_real(value, &options.time_ext_max);
+		else if (string_is(option, "time-ext-h")) parse_real(value, &options.time_ext_h);
+		else if (string_is(option, "time-ext-hard")) options.time_ext_hard = option_int(option, value, options.time_ext_hard);
+		else if (string_is(option, "time-model")) options.time_model = option_int(option, value, options.time_model);
+		else if (string_is(option, "sort-eval-shift")) {
+			int s[3];
+			if (value && sscanf(value, "%d,%d,%d", s, s + 1, s + 2) == 3) for (int i = 0; i < 3; ++i) options.sort_eval_shift[i] = s[i];
+			else warn("option %s needs three numbers a,b,c\n", option);
+		}
+		else if (string_is(option, "sort-min-depth")) options.sort_min_depth = option_int(option, value, options.sort_min_depth);
+		else if (string_is(option, "split-probe")) option_boolean(option, value, &options.split_probe);
+		else if (string_is(option, "pc-r")) parse_real(value, &options.pc_r);
+		else if (string_is(option, "pc-end")) parse_real(value, &options.pc_end);
+		else if (string_is(option, "pc-dev")) {
+			int d0; double k, fmin;
+			if (value && sscanf(value, "%d,%lf,%lf", &d0, &k, &fmin) == 3) { options.pc_dev_d0 = d0; options.pc_dev_k = k; options.pc_dev_fmin = fmin; }
+			else warn("option %s needs d0,k,fmin\n", option);
+		}
+		else if (string_is(option, "pc-dev-root")) option_boolean(option, value, &options.pc_dev_root);
+		else if (string_is(option, "pc-mob")) {
+			double m[3];
+			if (value && sscanf(value, "%lf,%lf,%lf", m, m + 1, m + 2) == 3) for (int i = 0; i < 3; ++i) options.pc_mob[i] = m[i];
+			else warn("option %s needs a,b,c\n", option);
+		}
+		else if (string_is(option, "corr")) option_boolean(option, value, &options.corr);
+		else if (string_is(option, "corr-end")) option_boolean(option, value, &options.corr_end);
+		else if (string_is(option, "lmr")) options.lmr = option_int(option, value, options.lmr);
+		else if (string_is(option, "lazy")) options.lazy = option_int(option, value, options.lazy);
+		else if (string_is(option, "lazy-min")) options.lazy_min = option_int(option, value, options.lazy_min);
 
 		else if (string_is(option, "pv-debug")) option_boolean(option, value, &options.pv_debug);
 		else if (string_is(option, "pv-check")) option_boolean(option, value, &options.pv_check);
