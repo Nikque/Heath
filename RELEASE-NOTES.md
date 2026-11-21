@@ -12,6 +12,7 @@ Each version contains all changes of the C versions on the same row.
 
 | Heath (newedax) | C (nikque) | C (eval2) |
 |---|---|---|
+| heath.19 | nikque.32 | eval2.19 |
 | heath.18 | nikque.31 | eval2.19 |
 | heath.17 | nikque.30 | eval2.18 |
 | heath.16 | nikque.29 | eval2.17 |
@@ -30,6 +31,26 @@ Each version contains all changes of the C versions on the same row.
 | newedax.3 | nikque.18 | eval2.6 |
 | newedax.2 | nikque.18 | eval2.6 |
 | newedax.1 | nikque.17 | eval2.5 |
+
+---
+
+## v4.5.5-heath.19
+
+The exact endgame search is faster. The change is the same as in [v4.5.5-nikque.32](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque32).
+
+**Speed**
+
+- At 5 and 6 empty squares, a quadrant's only empty square is played first, and a small thread-local transposition table (2^14 entries) is probed. The ideas come from KUROOBI (MIT).
+- With one thread, exact solves of fforum-40-59 take 98.2% of the time (505.2 s to 496.2 s), and fforum-20-39 searches 89.0% of the positions. Every score and best move is the same as in the previous release.
+- The midgame search is unchanged: positions that are not solved search the same number of positions as before.
+
+**Compatibility**
+
+- The previous release's `eval.dat`, books, and search and learning settings remain compatible.
+
+**Not checked.** The speed with many threads (such as 32), production books, and playing strength.
+
+[Tests and measurements](docs/validation/newedax.en.md#v455-heath19)
 
 ---
 

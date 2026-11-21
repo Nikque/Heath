@@ -4,6 +4,17 @@ Tests and measurements done for each version, moved without changes from the for
 
 For what changed, see the [release notes](../../RELEASE-NOTES.md). "Above" and "below" in the text refer to positions in the former document.
 
+## v4.5.5-heath.19
+
+- Exact solves with one thread (`-n 1 -l 60 -solve`) were timed alternately with heath.18 (AMD Ryzen 9 9950X, one logical CPU while other work used every CPU). fforum-40-59: heath.18 took 505.3, 503.2, 506.3 and 506.0 s (505.2 s on average, 28.63 billion positions searched), heath.19 took 495.7, 496.3, 496.1 and 496.7 s (496.2 s, 25.81 billion), 0.982 times. fforum-20-39 searched 95,514,431 positions instead of 107,293,233. Both had zero move and score errors.
+- heath.18 built from source searched as many positions as the released `wEdax-x86-64-v4.exe` (107,293,233 on fforum-20-39).
+- On 20 midgame positions (14 to 18 random moves from the start, level 14) the number of positions searched was the same as with heath.18 (9,130,128).
+- The five executables, three DLLs, and the Android arm64-v8a and armeabi-v7a builds were made for both the 64-slot and 48-slot configurations. The five executables solved fforum-20-39 with zero move and score errors, each searching 95,514,431 positions with 64 slots and 94,150,533 with 48 slots. All 281 API checks passed for each of the three DLLs in both configurations. For Android, the ELF architectures and the library API symbol were checked. The seven evaluation tools that contain the search (selfplay3, label, playout, gen, leafgen, evcheck, trans2rec) were rebuilt.
+
+The speed with many threads, production books, playing strength, and operation on Android devices remain untested.
+
+---
+
 ## v4.5.5-heath.18
 
 - The five executables in each of the 64-slot and 48-slot Heath builds solved 24 synthetic endgame positions scored by an independent implementation with zero move or score errors. All seven Cassio EOF cases passed.

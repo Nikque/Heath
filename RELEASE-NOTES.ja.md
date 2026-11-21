@@ -12,6 +12,7 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 
 | Heath（newedax） | C 版（nikque） | C 版（eval2） |
 |---|---|---|
+| heath.19 | nikque.32 | eval2.19 |
 | heath.18 | nikque.31 | eval2.19 |
 | heath.17 | nikque.30 | eval2.18 |
 | heath.16 | nikque.29 | eval2.17 |
@@ -30,6 +31,26 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 | newedax.3 | nikque.18 | eval2.6 |
 | newedax.2 | nikque.18 | eval2.6 |
 | newedax.1 | nikque.17 | eval2.5 |
+
+---
+
+## v4.5.5-heath.19
+
+終盤の完全読みを速くしました。[v4.5.5-nikque.32](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.ja.md#v455-nikque32) と同じ変更です。
+
+**速さ**
+
+- 空き 5〜6 マスの探索で、区画（盤の 4 分の 1）に 1 つだけ残った空きを先に打ち、スレッドごとの小さな置換表（2^14 件）を引くようにしました。考え方は KUROOBI（MIT）によります。
+- 1 スレッドの完全読みで、fforum-40-59 が 0.982 倍の時間（505.2 秒 → 496.2 秒）、fforum-20-39 は探索する局面が 89.0% になりました。評価値と最善手はすべて前の版と同じです。
+- 中盤の探索は変わりません（読み切りに入らない局面では、探索する局面の数が前の版と同じです）。
+
+**互換性**
+
+- 前の版の `eval.dat` と book を引き続き使えます。探索・学習の設定も前の版と同じです。
+
+**未確認**。32 スレッドなど多スレッドでの速さ、実 book、対局での強さ。
+
+[検証記録](docs/validation/newedax.ja.md#v455-heath19)
 
 ---
 

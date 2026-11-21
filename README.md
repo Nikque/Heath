@@ -27,7 +27,8 @@ For Linux and macOS executables, use the C version ([edax-reversi-AVX releases](
 
 - Evaluation: since v4.5.5-newedax.13, a new evaluation of 64 slots (or 48), with its own `eval.dat`; the default probcut model is `refit`. Up to v4.5.5-newedax.12 it was eval2, with the same results as the C version.
 - Commands and settings are the same as the C version; the search results differ (the evaluation).
-- The latest release, **v4.5.5-heath.18**, includes C v4.5.5-nikque.31 and v4.5.5-eval2.19. It fixes the game count summary, estimate errors, protocol handling, and command help.
+- The latest release, **v4.5.5-heath.19**, includes C v4.5.5-nikque.32 and v4.5.5-eval2.19. Exact endgame solves are faster (98.2% of the time on fforum-40-59 with one thread), with the same results.
+- **v4.5.5-heath.18** includes C v4.5.5-nikque.31 and v4.5.5-eval2.19. It fixes the game count summary, estimate errors, protocol handling, and command help.
 - **v4.5.5-heath.17** includes C v4.5.5-nikque.30 and v4.5.5-eval2.18. It fixes an exact-endgame bound that could be wrong when a transposition key ignored the color of solid discs.
 - Each Heath release contains all changes of a C release. **v4.5.5-heath.16** contains C v4.5.5-nikque.29 / v4.5.5-eval2.17; `book correct`, `book leaf recalculate` and `book learn` go on from a book saved before they ended, and `book deepen` works (v4.5.5-newedax.15 fixed a rare wrong score of the exact search from 17 empties on; v4.5.5-newedax.14 added thinking on the opponent's time under NBoard, `-ponder on`, and the hash tables kept from move to move, `-keep-hash on`).
 
@@ -86,7 +87,8 @@ Linux・macOS 用の実行ファイルは C 版（[edax-reversi-AVX の Releases
 
 - 評価関数：v4.5.5-newedax.13 から、64 枠（または 48 枠）の新しい評価関数で、専用の `eval.dat` を使います。ProbCut の既定は `refit` です。v4.5.5-newedax.12 までは eval2 で、C 版と同じ結果でした。
 - コマンドと設定は C 版と同じです。探索の結果は評価関数が違うので変わります。
-- 最新の **v4.5.5-heath.18** には、C 版 v4.5.5-nikque.31 と v4.5.5-eval2.19 の変更が入っています。棋譜の完了件数、見積もりの誤差、外部プロトコルとヘルプを修正しました。
+- 最新の **v4.5.5-heath.19** には、C 版 v4.5.5-nikque.32 と v4.5.5-eval2.19 の変更が入っています。終盤の完全読みが速くなりました（1 スレッドの fforum-40-59 で 0.982 倍の時間）。結果は前の版と同じです。
+- **v4.5.5-heath.18** には、C 版 v4.5.5-nikque.31 と v4.5.5-eval2.19 の変更が入っています。棋譜の完了件数、見積もりの誤差、外部プロトコルとヘルプを修正しました。
 - **v4.5.5-heath.17** には、C 版 v4.5.5-nikque.30 と v4.5.5-eval2.18 の変更が入っています。度外石の色を置換表のキーに反映せず、終盤の完全読みで探索境界がずれることがあった不具合を修正しました。
 - Heath の各版は、C 版のある版の変更をすべて含みます。**v4.5.5-heath.16** は、C 版 v4.5.5-nikque.29・v4.5.5-eval2.17 を含みます。`book correct`・`book leaf recalculate`・`book learn` が途中で保存された book から続けられるようになり、`book deepen` が働くようになりました。v4.5.5-newedax.15 では、空き 17 マス以上の完全読みで、まれに評価値を誤っていたのを直しました（v4.5.5-newedax.14 で、NBoard で相手の時間にも考える `-ponder on` と、置換表を手から手へ残す `-keep-hash on` を足しました）。
 
