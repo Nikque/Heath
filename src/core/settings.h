@@ -129,6 +129,15 @@ constexpr int THREAD_LOCAL_HASH_SIZE = THREAD_LOCAL_HASH_BITS;
 constexpr int THREAD_LOCAL_HASH_SIZE = 10;
 #endif
 
+/** Endgame search at 5 and 6 empties (v4.5.5-heath.19, ideas from KUROOBI, MIT): a quadrant's only empty is played
+ * first, and a thread-local 1-way hash is probed (fforum-40-59, exact, one thread: 2.6% faster) */
+#ifndef ENDGAME_LONE_FIRST
+#define ENDGAME_LONE_FIRST 1
+#endif
+#ifndef ENDGAME_HASH56
+#define ENDGAME_HASH56 1
+#endif
+
 /** Thread local hash size per thread for 4 empties (in number of bits; with ENDGAME_HASH4) */
 #ifdef THREAD_LOCAL_HASH4_BITS
 constexpr int THREAD_LOCAL_HASH4_SIZE = THREAD_LOCAL_HASH4_BITS;
