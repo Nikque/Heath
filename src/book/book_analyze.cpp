@@ -3036,7 +3036,7 @@ static int ba_bestlines(BaJob *job, const BaParams *prm)
 		ba_print("@end id=%d lines=0 ends=0 incomplete=0 incomplete_ends=0 positions=0 written=0 ms=%lld\n", job->id, real_clock() - t);
 		return 0;
 	}
-	if (prm->file[0] && (f = fopen(prm->file, "w")) == NULL) {
+	if (prm->file[0] && (f = file_open(prm->file, "w")) == NULL) {
 		ba_work_free(&w);
 		ba_print("@error id=%d word=file\n@end id=%d error=1\n", job->id, job->id);
 		return 0;
@@ -3283,7 +3283,7 @@ long long book_deviate_export(Book *book, const Board *board, const char *line, 
 		warn("total loss %d reduced to %d\n", y, VISIT_LOSS_MAX);
 		y = VISIT_LOSS_MAX;
 	}
-	f = fopen(file, "w");
+	f = file_open(file, "w");
 	if (f == NULL) {
 		printf("ERROR: book %s %d %d export: cannot write the file %s\n", name, x, y, file);
 		return -1;

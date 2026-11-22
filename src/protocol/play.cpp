@@ -33,6 +33,7 @@
 void play_init(Play *play, Book *book)
 {
 	search_init(&play->search);
+	play->search.stop_pending = &play->stop_pending; // (NBoard: a ping before the search began)
 	play->book = book;
 	board_init(&play->initial_board);
 	play->search.options.header = " depth|score|       time   |  nodes (N)  |   N/s    | principal variation";
@@ -42,11 +43,12 @@ void play_init(Play *play, Book *book)
 	play->time[0].extra = 0;
 	play->time[1].left = options.time;
 	play->time[1].extra = 0;
+	play->state = IS_WAITING; // (play_new() stops the pondering: there is none yet)
+	play->ponder.launched = false;
 	play_new(play);
 	lock_init(&play->ponder);
 	lock_init(&play->no_stop);
 	play->no_stop.n = 0;
-	play->ponder.launched = false;
 	spin_init(&play->result);
 	play->ponder.verbose = false;
 	play->nboard_go = 0;
@@ -71,6 +73,8 @@ void play_free(Play *play)
  */
 void play_new(Play *play)
 {
+	// a pondering uses the search that is cleaned here, and only the state IS_PONDERING lets it be stopped
+	play_stop_pondering(play);
 	play->ponder.board.player = play->ponder.board.opponent = 0;
 	search_cleanup(&play->search);
 	play->state = IS_WAITING;
@@ -2023,7 +2027,7 @@ int play_learn_file(Play *play, const char *file)
 	}
 	fclose(f);
 	// the whole file is learned: the progress is removed (it is kept when learning stopped)
-	if (saves.own && !play->book->failed && remove(progress_file) == 0) book_print("Book learn: %s is learned to its end: %s removed\n", file, progress_file);
+	if (saves.own && !play->book->failed && file_remove(progress_file) == 0) book_print("Book learn: %s is learned to its end: %s removed\n", file, progress_file);
 	book_print("%d/%d games learned\n", n_learned, n_games);
 	return n_learned;
 }
