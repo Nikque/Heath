@@ -83,6 +83,13 @@ typedef struct LibedaxLine {
 	int color;
 } LibedaxLine;
 
+#if defined(LIB_BUILD) && defined(_MSC_VER) && defined(__cplusplus)
+/** four bytes, as the bool of the DLL of the C version (include/stdbool.h): a C++ bool would leave three of them unset */
+typedef int libedax_bool;
+#else
+typedef bool libedax_bool;
+#endif
+
 /** hint */
 typedef struct LibedaxHint {
 	int depth;                   /**< searched depth (except book moves) */
@@ -94,7 +101,7 @@ typedef struct LibedaxHint {
 	LibedaxLine pv[1];           /**< principal variation */
 	long long time;              /**< searched time (except book moves) */
 	unsigned long long n_nodes;  /**< searched node count (except book moves) */
-	bool book_move;              /**< book move origin */
+	libedax_bool book_move;      /**< book move origin */
 } LibedaxHint;
 
 /** list of hints: hint[1] to hint[n_hints] */
@@ -153,7 +160,7 @@ typedef struct LibedaxBook {
 	void *stack;                  /**< not used (NULL) */
 	int n;                        /**< number of buckets */
 	int n_nodes;                  /**< number of positions */
-	bool need_saving;             /**< not used (false) */
+	libedax_bool need_saving;     /**< not used (false) */
 	unsigned long long random[1]; /**< not used (0) */
 	void *search;                 /**< not used (NULL) */
 	unsigned int count_bestpath_stop; /**< not used (0) */
