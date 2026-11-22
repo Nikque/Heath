@@ -55,7 +55,7 @@
 #endif
 
 #ifdef USE_GAS_X86
-#define	STATIC	__attribute__((used))
+#define	STATIC	extern "C" __attribute__((used))	// (the asm below takes the tables by these names)
 #ifdef __unix__
 #define	_
 #else
