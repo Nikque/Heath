@@ -6,8 +6,11 @@ on:
 permissions:
   contents: read
 
+# Every job: Boost from .github/fetch-boost.py, no program in bin before the build, then the programs of the build,
+# each by its name (a missing one fails the job), to dist. Only dist is checked and uploaded.
 jobs:
   windows:
+    name: windows (${{ matrix.arch }})
     runs-on: windows-2022
     strategy:
       fail-fast: false
@@ -15,15 +18,22 @@ jobs:
         include:
           - arch: x64
             targets: vc-x64 vc-x64-v3 vc-x64-v4 vc-lib
-            built: bin/wEdax-x86-64*.exe bin/libedax-x64*.dll
+            built: >-
+              wEdax-x86-64.exe wEdax-x86-64-v3.exe wEdax-x86-64-v4.exe
+              libedax-x64.dll libedax-x64-v3.dll libedax-x64-v4.dll
           - arch: x64_x86
             targets: vc-x86 vc-x86-sse
-            built: bin/wEdax-x86.exe bin/wEdax-x86-sse.exe
+            built: wEdax-x86.exe wEdax-x86-sse.exe
           - arch: x64_arm64
             targets: vc-a64
-            built: bin/wEdax-arm64.exe
+            built: wEdax-arm64.exe
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch Boost
+        run: python .github/fetch-boost.py
+      - name: No old program in bin
+        shell: bash
+        run: rm -f bin/[wlma]Edax* bin/libedax*
       - name: Build Windows ${{ matrix.arch }}
         shell: cmd
         run: |
@@ -31,22 +41,30 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" ${{ matrix.arch }}
           cd src
           for %%t in (${{ matrix.targets }}) do (nmake -f nmakefile %%t || exit /b 1)
+      - name: Take the programs of this build
+        shell: bash
+        run: |
+          mkdir dist
+          for f in ${{ matrix.built }}; do cp "bin/$f" dist/; done
       - name: No build folder in the programs
-        run: python tests/check-build-paths.py ${{ matrix.built }}
+        run: python tests/check-build-paths.py "dist/*"
       - uses: actions/upload-artifact@v4
         with:
           name: release-windows-${{ matrix.arch }}
-          path: |
-            bin/*.exe
-            bin/*.dll
+          path: dist/
           if-no-files-found: error
 
   linux:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch Boost
+        run: python3 .github/fetch-boost.py
+      - name: No old program in bin
+        run: rm -f bin/[wlma]Edax* bin/libedax*
       - name: Install 32-bit compiler libraries
-        run: sudo apt-get update && sudo apt-get install -y gcc-multilib
+        # gcc-multilib: the C library and libatomic, g++-multilib: the C++ headers and library
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib
       - name: Build Linux x86 variants
         run: |
           mkdir -p bin
@@ -56,14 +74,19 @@ jobs:
           for arch in x86-64 x86-64-v3 x86-64-v4; do
             make -C src libbuild ARCH="$arch" COMP=gcc OS=linux
           done
+      - name: Take the programs of this build
+        run: |
+          mkdir dist
+          for f in lEdax-x86 lEdax-x86-64 lEdax-x86-64-v3 lEdax-x86-64-v4 \
+                   libedax-x86-64.so libedax-x86-64-v3.so libedax-x86-64-v4.so; do
+            cp "bin/$f" dist/
+          done
       - name: No build folder in the programs
-        run: python3 tests/check-build-paths.py "bin/lEdax-*" "bin/libedax-*.so"
+        run: python3 tests/check-build-paths.py "dist/*"
       - uses: actions/upload-artifact@v4
         with:
           name: release-linux
-          path: |
-            bin/lEdax-*
-            bin/libedax-*.so
+          path: dist/
           if-no-files-found: error
       - name: Test the library
         run: |
@@ -76,16 +99,25 @@ jobs:
     runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch Boost
+        run: python3 .github/fetch-boost.py
+      - name: No old program in bin
+        run: rm -f bin/[wlma]Edax* bin/libedax*
+      # clang++: src/Makefile turns only a bare CC=clang into the C++ driver, which links the C++ library
       - name: Build macOS x64
         run: |
           mkdir -p bin
-          make -C src build ARCH=x64-modern COMP=clang OS=osx CC='clang -arch x86_64'
+          make -C src build ARCH=x64-modern COMP=clang OS=osx CC='clang++ -arch x86_64'
+      - name: Take the program of this build
+        run: |
+          mkdir dist
+          cp bin/mEdax-x64-modern dist/
       - name: No build folder in the program
-        run: python3 tests/check-build-paths.py bin/mEdax-x64-modern
+        run: python3 tests/check-build-paths.py "dist/*"
       - uses: actions/upload-artifact@v4
         with:
           name: release-macos-x64
-          path: bin/mEdax-x64-modern
+          path: dist/
           if-no-files-found: error
       - name: Test the executable
         run: cd bin && ./mEdax-x64-modern -n 1 -l 60 -solve ../problem/fforum-1-19.obf
@@ -95,23 +127,29 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch Boost
+        run: python3 .github/fetch-boost.py
+      - name: No old program in bin
+        run: rm -f bin/[wlma]Edax* bin/libedax*
       - name: Build macOS arm64 executable and universal library
         run: |
           mkdir -p bin
-          make -C src build ARCH=arm64 COMP=clang OS=osx CC='clang -arch arm64'
-          make -C src libbuild ARCH=arm64 COMP=clang OS=osx CC='clang -arch arm64'
-          make -C src libbuild ARCH=x64-modern COMP=clang OS=osx CC='clang -arch x86_64'
+          make -C src build ARCH=arm64 COMP=clang OS=osx CC='clang++ -arch arm64'
+          make -C src libbuild ARCH=arm64 COMP=clang OS=osx CC='clang++ -arch arm64'
+          make -C src libbuild ARCH=x64-modern COMP=clang OS=osx CC='clang++ -arch x86_64'
           lipo -create bin/libedax-arm64.dylib bin/libedax-x64-modern.dylib -output bin/libedax.universal.dylib
           lipo -info bin/libedax.universal.dylib
           rm bin/libedax-arm64.dylib bin/libedax-x64-modern.dylib
+      - name: Take the programs of this build
+        run: |
+          mkdir dist
+          cp bin/mEdax-arm64 bin/libedax.universal.dylib dist/
       - name: No build folder in the programs
-        run: python3 tests/check-build-paths.py bin/mEdax-arm64 bin/libedax.universal.dylib
+        run: python3 tests/check-build-paths.py "dist/*"
       - uses: actions/upload-artifact@v4
         with:
           name: release-macos-arm64
-          path: |
-            bin/mEdax-arm64
-            bin/libedax.universal.dylib
+          path: dist/
           if-no-files-found: error
       - name: Test the executable and the library
         run: |
@@ -126,21 +164,25 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch Boost
+        run: python3 .github/fetch-boost.py
+      - name: No old program in bin
+        run: rm -f bin/[wlma]Edax* bin/libedax*
       - name: Build Android ARM variants
         run: |
           "$ANDROID_NDK_HOME/ndk-build" -C src NDK_PROJECT_PATH=. NDK_APPLICATION_MK=./Application.mk APP_ABI='armeabi-v7a arm64-v8a' APP_PLATFORM=android-21 -j2
           "$ANDROID_NDK_HOME/ndk-build" -C src NDK_PROJECT_PATH=. NDK_APPLICATION_MK=./Application-lib.mk NDK_OUT=./obj-lib NDK_LIBS_OUT=./libs-lib -j2
-          mkdir -p bin
-          cp src/libs/armeabi-v7a/aEdax bin/aEdax-armeabi-v7a
-          cp src/libs/arm64-v8a/aEdax bin/aEdax-arm64-v8a
-          cp src/libs-lib/armeabi-v7a/libedax.so bin/libedax-armeabi-v7a.so
-          cp src/libs-lib/arm64-v8a/libedax.so bin/libedax-arm64-v8a.so
+      - name: Take the programs of this build
+        run: |
+          mkdir dist
+          cp src/libs/armeabi-v7a/aEdax dist/aEdax-armeabi-v7a
+          cp src/libs/arm64-v8a/aEdax dist/aEdax-arm64-v8a
+          cp src/libs-lib/armeabi-v7a/libedax.so dist/libedax-armeabi-v7a.so
+          cp src/libs-lib/arm64-v8a/libedax.so dist/libedax-arm64-v8a.so
       - name: No build folder in the programs
-        run: python3 tests/check-build-paths.py "bin/aEdax-*" "bin/libedax-a*.so"
+        run: python3 tests/check-build-paths.py "dist/*"
       - uses: actions/upload-artifact@v4
         with:
           name: release-android
-          path: |
-            bin/aEdax-*
-            bin/libedax-a*.so
+          path: dist/
           if-no-files-found: error
