@@ -762,6 +762,12 @@ static bool position_read_is_sound(const int n_link, const unsigned char *links,
 	return leaf_move <= NOMOVE;
 }
 
+/** @return true if a board read from a book can be the one of a position: no square with two discs, four discs at least. */
+static bool position_board_is_sound(const Board *board)
+{
+	return (board->player & board->opponent) == 0 && bit_count(board->player | board->opponent) >= 4;
+}
+
 /**
  * @brief Read a position.
  *
@@ -812,7 +818,7 @@ static bool position_read(Position *position, BookStream *s, Book *book)
 	// a damaged file (or one of another tool): more moves than a position has, a level above 60 (an index of
 	// LEVEL[][]), a move that is no square: the book is not loaded (the lists of moves and the tables would be
 	// read or written out of bounds)
-	if (!position_read_is_sound(n_link, h + POSITION_FIXED_SIZE, position->leaf.move, position->level)) return false;
+	if (!position_board_is_sound(&position->board) || !position_read_is_sound(n_link, h + POSITION_FIXED_SIZE, position->leaf.move, position->level)) return false;
 
 	position->n_link = 0;
 	if (!position_set_links(position, (const Link*) (h + POSITION_FIXED_SIZE), n_link)) {
@@ -855,7 +861,7 @@ static int position_import(Position *position, FILE *f, const bool verbose, int 
 
 	position_init(position);
 	s = parse_board(line, &position->board, &value);
-	if (s == line) {
+	if (s == line || !position_board_is_sound(&position->board)) {
 		wrong = "wrong board";
 	} else if (*(s = parse_find(s, ',')) != ',') {
 		wrong = "missing ',' after board setting";
@@ -1010,7 +1016,7 @@ static bool position_read_2(Position *position, BookStream *s, Book *book)
 		s->pos = (size_t) (c - s->buffer) + sizeof (Link) * n_link;
 		position->count[0] = position->count[1] = position->count[2] = position->count[3] = 0;
 		if (book) position_set_counts_n(position, book, n);
-		if (!position_read_is_sound(n_link, c, position->leaf.move, position->level)) return false;
+		if (!position_board_is_sound(&position->board) || !position_read_is_sound(n_link, c, position->leaf.move, position->level)) return false;
 		position->n_link = 0;
 		if (!position_set_links(position, (const Link*) c, n_link)) {
 			error("cannot allocate opening book position's moves\n");
@@ -1035,7 +1041,7 @@ static bool position_read_2(Position *position, BookStream *s, Book *book)
 	if (book) position_set_counts_n(position, book, n);
 
 	if (!book_stream_read(s, links, sizeof (Link) * h[16])) return false;
-	if (!position_read_is_sound(h[16], (const unsigned char*) links, position->leaf.move, position->level)) return false;
+	if (!position_board_is_sound(&position->board) || !position_read_is_sound(h[16], (const unsigned char*) links, position->leaf.move, position->level)) return false;
 
 	position->n_link = 0;
 	if (!position_set_links(position, links, h[16])) {
@@ -8840,10 +8846,13 @@ static void extract_skeleton(Book *book, Board *board, Line *pv, Base *base)
 	Board init;
 	Game game;
 	int bestscore;
+	Position *p = book_probe(book, board);
+	const bool joins = (p && position_is_done(p, book)); // another line went on from here: this one ends here
 
+	if (p && !joins) position_set_done(p, book);
 	// a position of the book without any move (the end of a game) ends a line as a position out of the book
 	// (up to v4.5.5-nikque.15 the best of its empty list of moves was read: a null pointer)
-	if (book_get_moves(book, board, &movelist) && movelist.n_moves > 0) {
+	if (!joins && book_get_moves(book, board, &movelist) && movelist.n_moves > 0) {
 		bestscore = movelist_best(&movelist)->score;
 		
 		foreach_move(move, movelist) {
@@ -8878,6 +8887,7 @@ void book_extract_skeleton(Book *book, Base *base)
 	Line pv;
 	Board board;
 
+	book_clean(book); // (done: a position whose line is written. Without this, each join wrote the rest again)
 	line_init(&pv, BLACK);
 	line_push(&pv, F5); line_push(&pv, D6); line_push(&pv, C4);
 	board_init(&board);
