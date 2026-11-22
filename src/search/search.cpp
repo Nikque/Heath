@@ -512,6 +512,8 @@ void search_init_with(Search *search, const int n_task, const int hash_bits)
 	search->options.time = TIME_MAX;
 	search->options.time_per_move = false;
 	search->options.time_max = 0;
+	search->n_lazy = 0;
+	search->lazy_helper = false;
 	search->options.verbosity = options.verbosity;
 	search->options.keep_date = false;
 	search->options.header = NULL;
@@ -636,6 +638,7 @@ void search_clone(Search *search, Search *master)
 	search->depth_pv_extension = master->depth_pv_extension;
 	search->time = master->time;
 	search->height = master->height;
+	search->lazy_helper = false; // (set again by lazy_start() for a helper)
 	search->pv_dev[search->height] = master->pv_dev[master->height];
 	search->allow_node_splitting = master->allow_node_splitting;
 	search->node_type[search->height] = master->node_type[search->height];

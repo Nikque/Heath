@@ -281,7 +281,7 @@ void node_update(Node* node, Move *move)
 	if (!search->stop && score > node->bestscore) {
 		node->bestscore = score;
 		node->bestmove = move->x;
-		if (node->height == 0) {
+		if (node->height == 0 && !search->lazy_helper) { // (a helper searches the root too, but only for the hash table)
 			record_best_move(search, move, node->alpha, node->beta, node->depth);
 			search->result->n_moves_left--;
 		}
@@ -444,8 +444,8 @@ void task_search(Task *task)
 		board0 = search->board;
 		eval0 = search->eval;
 		search_update_midgame(search, move);
-		++search->pv_dev[search->height]; // (a split move is never the first one)
-		{	const int r = (options.lmr && !node->pv_node) ? lmr_reduction(search, node->depth, node->n_moves_done, false) : 0; // (search-b)
+		if (node->height || options.pc_dev_root) ++search->pv_dev[search->height]; // (a split move is never the first one)
+		{	const int r = (options.lmr && !node->pv_node) ? lmr_reduction(search, node->depth, node->n_moves_done + 1, false) : 0; // (search-b)
 			move->score = -NWS_midgame(search, -alpha - 1, node->depth - 1 - r, node);
 			if (r && move->score > alpha && !search->stop) move->score = -NWS_midgame(search, -alpha - 1, node->depth - 1, node);
 		}
@@ -590,6 +590,7 @@ static Search* task_search_create(Task *task)
 static void task_search_destroy(Search *search)
 {
 	mm_free(search->thread_hash.hash);
+	free(search->corr); // (search-b: allocated by search_alloc_thread_hash())
 #if ENDGAME_HASH56
 	mm_free(search->thread_hash56.hash);
 #endif

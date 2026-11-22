@@ -91,6 +91,7 @@ typedef struct Search {
 	volatile int n_child;                         /**< search child number */
 	struct Task *lazy[MAX_THREADS];               /**< lazy helpers at the root (search-b) */
 	int n_lazy;                                   /**< number of lazy helpers */
+	bool lazy_helper;                             /**< this search is a lazy helper: its root is not the result of the search */
 
 	int depth;                                    /**< depth level */
 	int selectivity;                              /**< selectivity level */

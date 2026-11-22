@@ -671,6 +671,7 @@ static void lazy_start(Search *search, const int depth, const bool selective)
 		task->move = NULL;
 		search_clone(task->search, search);
 		task->search->allow_node_splitting = false;
+		task->search->lazy_helper = true;
 		task->search->stop = RUNNING;
 		task->lazy_sel = selective ? search->selectivity + step : -1;
 		task->lazy_depth = d;

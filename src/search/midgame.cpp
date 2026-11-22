@@ -980,7 +980,7 @@ int NWS_midgame(Search *search, const int alpha, int depth, Node *parent)
 			if (!node_split(&node, move)) {
 				search_update_midgame(search, move);
 				if (move != first_move) ++search->pv_dev[search->height];
-				const int r = options.lmr ? lmr_reduction(search, depth, node.n_moves_done, move->x == hash_data.data.move[0]) : 0;
+				const int r = options.lmr ? lmr_reduction(search, depth, node.n_moves_done + 1, move->x == hash_data.data.move[0]) : 0;
 				if (r) {
 					move->score = -NWS_midgame(search, ~alpha, depth - 1 - r, &node);
 					if (move->score > alpha && !search->stop) move->score = -NWS_midgame(search, ~alpha, depth - 1, &node);
