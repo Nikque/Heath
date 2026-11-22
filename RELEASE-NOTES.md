@@ -47,7 +47,7 @@ A pre-release with the book and base functions of Edax 4.7, new search settings 
 
 - In a timed search with several threads, the whole search could stop just after its time had been extended. Split searches now use the extended time.
 - Reading a `.pgn` with a pass (`pass`) could lose the rest of that game and the next game. Passes are now read.
-- `stop`, and `?` of XBoard, could be lost when they arrived just before a search began. They now stop it.
+- `stop` of the standard input, and `?` of XBoard, could be lost when they arrived just before a search began. They now stop it. This fix does not cover GGS or `edax_stop` of the DLL.
 - Starting a new game while pondering waited for the pondering to end. The pondering is now stopped first.
 - `book learn` could fail to continue after a stop around a save to `.store` (since v4.5.5-nikque.29, eval2.17 and heath.16). It can now continue wherever it stops. A `.learn` written by the previous versions can still be used.
 - In NBoard, a `stop` that arrived while a `go` waited made every later move use the least time. The gap left by the earlier fix of `ping` is also closed.
@@ -75,7 +75,7 @@ A pre-release with the book and base functions of Edax 4.7, new search settings 
 - Keep a copy of important books before use.
 - To continue `book learn`, load `.store` with `book load` first. Without this, `.learn` is overwritten and it may no longer be possible to continue from that `.store`.
 
-**Not checked**: playing strength, 32 threads, large production books, Android devices, the Linux and macOS builds, and use from a GUI.
+**Not checked**: the time settings, `-split-probe` alone, playing strength, 32 threads, large production books, Android devices, the Linux and macOS builds, and use from a GUI.
 
 [Tests and measurements](docs/validation/newedax.en.md#v455-heath20-pre1)
 
