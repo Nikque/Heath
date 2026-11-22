@@ -12,6 +12,7 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 
 | Heath（newedax） | C 版（nikque） | C 版（eval2） |
 |---|---|---|
+| heath.20-pre1 | nikque.33-pre1 | eval2.20-pre1 |
 | heath.19 | nikque.32 | eval2.19 |
 | heath.18 | nikque.31 | eval2.19 |
 | heath.17 | nikque.30 | eval2.18 |
@@ -31,6 +32,52 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 | newedax.3 | nikque.18 | eval2.6 |
 | newedax.2 | nikque.18 | eval2.6 |
 | newedax.1 | nikque.17 | eval2.5 |
+
+---
+
+## v4.5.5-heath.20-pre1
+
+Edax 4.7 の book・base の機能、探索の新しい設定、不具合の修正を入れたプレリリースです。
+
+**変更**
+
+- Edax 4.7 の book・base の機能と、探索の新しい設定を足しました。内容は [v4.5.5-nikque.33-pre1](https://github.com/Nikque/edax-reversi-AVX/blob/v4.5.5-nikque.33-pre1/RELEASE-NOTES.ja.md#v455-nikque33-pre1) と同じです。
+
+**不具合の修正**
+
+- 持ち時間で読む多スレッドの探索で、時間を延長した直後に探索全体が止まることがありました。延長した時間を分割した探索にも効かせます。
+- パス（`pass`）のある `.pgn` を読むと、その対局の残りと次の対局が失われることがありました。パスを読めるようにしました。
+- `stop`、XBoard の `?` が、探索の開始の直前に届くと失われることがありました。届いた時点で止まります。
+- 先読みの最中に新しい対局を始めると、先読みが終わるまで待たされました。先読みを止めてから始めます。
+- `book learn` は、`.store` の保存の前後に止まると続きから学習できないことがありました（v4.5.5-nikque.29・eval2.17・heath.16 から）。どこで止まっても続けられます。前の版が書いた `.learn` も使えます。
+- NBoard で `go` が待つ間に `stop` が届くと、その後の手が最短の時間で打たれました。前の版の `ping` の修正に残っていた隙間も塞ぎました。
+- DLL の `book deviate export` などで、日本語のファイル名が化けることがありました。UTF-8 の名前で読み書きします。
+- Windows の DLL の `book_move` と `need_saving` は、4 バイトのうち 1 バイトしか書かれませんでした。C 版と同じ 4 バイトにしました。
+- そのほかの book・base の修正は [v4.5.5-nikque.33-pre1](https://github.com/Nikque/edax-reversi-AVX/blob/v4.5.5-nikque.33-pre1/RELEASE-NOTES.ja.md#v455-nikque33-pre1) と同じです。
+
+**互換性**
+
+- 前の版の `eval.dat` と book を引き続き使えます。book のファイル形式は同じです。
+- レベルや深さを指定した探索の評価値と最善手は、既定の設定では前の版と同じです。
+- 持ち時間で読む多スレッドの探索は、不具合の修正により結果が変わることがあります。
+- `book play` と `base complete` は、同時に進めると結果が前の版と変わることがあります。
+- `book deviate` 系列・`book enhance`・`book leaf expand` でできる book は、重複した探索をやめたため、前の版と少し変わることがあります。
+- `book extract` が書き出す手順は、合流した所で終わるため、前の版より短く、少なくなることがあります。
+- `book play` では、初期局面からたどれない局面の評価値が前の版と変わることがあります。
+- `book play` は毎周の保存をやめました。途中で止まると、最大で `book-save-interval`（既定 60 分）分を失います。
+- 棋譜の保存中は、ファイル 2 つ分の空き容量が必要です。
+- `book play n` は `.play-to`、`base complete` は `.completing` の付いた途中経過のファイルを作ります。続ける前に消さないでください。
+- 数なしの `book play`、`book extract`、`base convert`・`base unique` は前の版と同じ意味です。Edax 4.7 とは意味が違います。
+
+**注意**
+
+- テスト用のプレリリースです。正式版までに設定名と既定値が変わることがあります。
+- 大事な book は、コピーを取ってから使ってください。
+- `book learn` を続けるときは、先に `.store` を `book load` で読んでください。読まずに実行すると `.learn` が上書きされ、その `.store` から続けられなくなることがあります。
+
+**未確認**：対局での強さ、32 スレッド、大きな実物の book、Android 実機、Linux・macOS 版、GUI からの利用。
+
+[検証記録](docs/validation/newedax.ja.md#v455-heath20-pre1)
 
 ---
 

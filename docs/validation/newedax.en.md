@@ -4,6 +4,20 @@ Tests and measurements done for each version, moved without changes from the for
 
 For what changed, see the [release notes](../../RELEASE-NOTES.md). "Above" and "below" in the text refer to positions in the former document.
 
+## v4.5.5-heath.20-pre1
+
+- The tests of regressions (62/62), libedax (292 checks), book analysis (11/11), resuming, and book and base (557 checks) passed with no failure.
+- The test that stops `book learn` at each write and resumes it passed with no failure.
+- With the default settings, the number of positions searched on 20 midgame positions (level 14) was that of the previous version (9,130,128).
+- The exact solves of fforum-20-39 had no wrong move or score (95,514,431 positions searched).
+- The new search settings were run one by one and all together: no wrong exact solve and no abnormal end.
+- `stop`, and `?` of XBoard, sent just before a search began were never lost in 90 runs each. A `ping` just after `go` in NBoard was never lost in 60 runs.
+- `book deviate`, `deviate2` and `book enhance` made the same books with one and four threads and `book-reproducible on`.
+
+Not checked: playing strength, 32 threads, large production books, Android devices, the Linux and macOS builds, and use from a GUI.
+
+---
+
 ## v4.5.5-heath.19
 
 - Exact solves with one thread (`-n 1 -l 60 -solve`) were timed alternately with heath.18 (AMD Ryzen 9 9950X, one logical CPU while other work used every CPU). fforum-40-59: heath.18 took 505.3, 503.2, 506.3 and 506.0 s (505.2 s on average, 28.63 billion positions searched), heath.19 took 495.7, 496.3, 496.1 and 496.7 s (496.2 s, 25.81 billion), 0.982 times. fforum-20-39 searched 95,514,431 positions instead of 107,293,233. Both had zero move and score errors.

@@ -12,6 +12,7 @@ Each version contains all changes of the C versions on the same row.
 
 | Heath (newedax) | C (nikque) | C (eval2) |
 |---|---|---|
+| heath.20-pre1 | nikque.33-pre1 | eval2.20-pre1 |
 | heath.19 | nikque.32 | eval2.19 |
 | heath.18 | nikque.31 | eval2.19 |
 | heath.17 | nikque.30 | eval2.18 |
@@ -31,6 +32,52 @@ Each version contains all changes of the C versions on the same row.
 | newedax.3 | nikque.18 | eval2.6 |
 | newedax.2 | nikque.18 | eval2.6 |
 | newedax.1 | nikque.17 | eval2.5 |
+
+---
+
+## v4.5.5-heath.20-pre1
+
+A pre-release with the book and base functions of Edax 4.7, new search settings and fixes.
+
+**Changes**
+
+- The book and base functions of Edax 4.7 and new search settings were added, as in [v4.5.5-nikque.33-pre1](https://github.com/Nikque/edax-reversi-AVX/blob/v4.5.5-nikque.33-pre1/RELEASE-NOTES.md#v455-nikque33-pre1).
+
+**Fixes**
+
+- In a timed search with several threads, the whole search could stop just after its time had been extended. Split searches now use the extended time.
+- Reading a `.pgn` with a pass (`pass`) could lose the rest of that game and the next game. Passes are now read.
+- `stop`, and `?` of XBoard, could be lost when they arrived just before a search began. They now stop it.
+- Starting a new game while pondering waited for the pondering to end. The pondering is now stopped first.
+- `book learn` could fail to continue after a stop around a save to `.store` (since v4.5.5-nikque.29, eval2.17 and heath.16). It can now continue wherever it stops. A `.learn` written by the previous versions can still be used.
+- In NBoard, a `stop` that arrived while a `go` waited made every later move use the least time. The gap left by the earlier fix of `ping` is also closed.
+- Non-ASCII file names could be garbled by `book deviate export` and others in the DLL. UTF-8 names are now used.
+- Only one of the four bytes of `book_move` and `need_saving` was written by the Windows DLL. They now have four bytes, as in the C version.
+- The other fixes of the book and base functions are those of [v4.5.5-nikque.33-pre1](https://github.com/Nikque/edax-reversi-AVX/blob/v4.5.5-nikque.33-pre1/RELEASE-NOTES.md#v455-nikque33-pre1).
+
+**Compatibility**
+
+- The previous release's `eval.dat` and books remain compatible. The book file format is unchanged.
+- With the default settings, searches with a given level or depth give the same scores and best moves as the previous version.
+- Timed searches with several threads can give different results because of the fix.
+- `book play` and `base complete` can give results different from the previous version when they run in parallel.
+- Books made by the `book deviate` family, `book enhance` and `book leaf expand` can differ slightly from the previous version, as the repeated searches are gone.
+- The lines written by `book extract` end where they join, so they can be shorter and fewer than before.
+- `book play` can give other values to positions that cannot be reached from the initial position.
+- `book play` no longer saves at every round. An interrupted run can lose up to `book-save-interval` (60 minutes by default).
+- Saving games needs free space for two copies of the file.
+- `book play n` creates a `.play-to` file and `base complete` a file with `.completing` for their progress. Do not delete them before resuming.
+- `book play` without a number, `book extract`, `base convert` and `base unique` keep their previous meaning, which differs from Edax 4.7.
+
+**Notes**
+
+- This is a pre-release for testing. Setting names and defaults may change before the final version.
+- Keep a copy of important books before use.
+- To continue `book learn`, load `.store` with `book load` first. Without this, `.learn` is overwritten and it may no longer be possible to continue from that `.store`.
+
+**Not checked**: playing strength, 32 threads, large production books, Android devices, the Linux and macOS builds, and use from a GUI.
+
+[Tests and measurements](docs/validation/newedax.en.md#v455-heath20-pre1)
 
 ---
 
