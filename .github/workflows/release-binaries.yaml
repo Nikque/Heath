@@ -8,6 +8,7 @@ permissions:
 
 # Every job: Boost from .github/fetch-boost.py, no program in bin before the build, then the programs of the build,
 # each by its name (a missing one fails the job), to dist. Only dist is checked and uploaded.
+# The library tests take the eval.dat of a release (.github/fetch-eval.py): that of bin/data is the one of eval2.
 jobs:
   windows:
     name: windows (${{ matrix.arch }})
@@ -90,7 +91,7 @@ jobs:
           if-no-files-found: error
       - name: Test the library
         run: |
-          mkdir -p t/data && cp bin/data/eval.dat t/data/ && cp bin/libedax-x86-64.so t/
+          python3 .github/fetch-eval.py t/data/eval.dat && cp bin/libedax-x86-64.so t/
           gcc -O1 -D_GNU_SOURCE tests/libedax_test.c -Lbin -l:libedax-x86-64.so -Wl,-rpath,'$ORIGIN' -ldl -o t/libedax_test
           cd t && ./libedax_test libedax-x86-64.so > libedax_test.log 2>&1 || { cat libedax_test.log; exit 1; }
           grep 'checks,' libedax_test.log
@@ -153,7 +154,7 @@ jobs:
           if-no-files-found: error
       - name: Test the executable and the library
         run: |
-          mkdir -p t/data && cp bin/data/eval.dat t/data/ && cp bin/libedax.universal.dylib bin/mEdax-arm64 t/
+          python3 .github/fetch-eval.py t/data/eval.dat && cp bin/libedax.universal.dylib bin/mEdax-arm64 t/
           clang -O1 tests/libedax_test.c t/libedax.universal.dylib -Wl,-rpath,@loader_path -o t/libedax_test
           cd t
           ./mEdax-arm64 -n 1 -l 60 -solve ../problem/fforum-1-19.obf
