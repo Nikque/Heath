@@ -61,6 +61,8 @@ extern struct Level {
 } LEVEL[61][61];
 
 
+#define CORR_BITS 16 /* size of the correction history (search-b) */
+
 /** search stare */
 typedef struct Search {
 	Board board;                                  /**< othello board (16) */
@@ -89,9 +91,6 @@ typedef struct Search {
 	struct Search *child[MAX_THREADS];            /**< child search */
 	struct Search *master;                        /**< master search (parent of all searches)*/
 	volatile int n_child;                         /**< search child number */
-	struct Task *lazy[MAX_THREADS];               /**< lazy helpers at the root (search-b) */
-	int n_lazy;                                   /**< number of lazy helpers */
-	bool lazy_helper;                             /**< this search is a lazy helper: its root is not the result of the search */
 
 	int depth;                                    /**< depth level */
 	int selectivity;                              /**< selectivity level */
@@ -122,8 +121,6 @@ typedef struct Search {
 	MoveList movelist;                            /**< list of moves */
 	int height;                                   /**< search height from root */
 	NodeType node_type[GAME_SIZE];                /**< node type (pv node, cut node, all node) */
-	short *corr;                                  /**< correction history of the probcut gate (search-b, the table of the master: shared by its threads) */
-	unsigned char pv_dev[GAME_SIZE];              /**< moves off the principal variation from the root (search-b, probcut) */
 	Bound stability_bound;                        /**< score bounds according to stable squares */
 
 	struct {
@@ -131,6 +128,7 @@ typedef struct Search {
 		int selectivity;                          /**< final selectivity */
 		long long time;                           /**< time in sec. */
 		bool time_per_move;                       /**< time_per_move or per game ?*/
+		long long time_left;                      /**< clock left when the time of a move is taken from it (0: not so) */
 		long long time_max;                       /**< longest time of a move when it may stretch (0: fixed, as before) */
 		int verbosity;                            /**< verbosity level */
 		bool keep_date;                           /**< keep date */
@@ -144,6 +142,13 @@ typedef struct Search {
 	Result *result;                               /**< shared result */
 
 	void (*observer)(Result*);                    /**< call back function to print search result */
+
+	/* search-b: after the fields of v4.5.5-heath.19 */
+	short *corr;                                  /**< correction history of the probcut gate (search-b, the table of the master: shared by its threads) */
+	unsigned char pv_dev[GAME_SIZE];              /**< moves off the principal variation from the root (search-b, probcut) */
+	struct Task *lazy[MAX_THREADS];               /**< lazy helpers at the root (search-b) */
+	int n_lazy;                                   /**< number of lazy helpers */
+	bool lazy_helper;                             /**< this search is a lazy helper: its root is not the result of the search */
 } Search;
 
 struct Node;
@@ -176,6 +181,7 @@ void search_set_game_time(Search*, const long long);
 void search_set_move_time(Search*, const long long);
 void search_set_move_time_limit(Search*, const long long, const long long);
 void search_iteration_done(Search*, const int, const int);
+void search_iteration_timed(Search*);
 bool search_time_ext_on(const Search*);
 void search_time_ext_bonus(Search*);
 void search_time_init(Search*);

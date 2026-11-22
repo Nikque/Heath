@@ -541,13 +541,12 @@ int lmr_reduction(const Search *search, const int depth, const int order, const 
 
 /* search-b (2026-11-22): correction history of the evaluation of the probcut gate (one table for a search
  * and its threads, 1/16 disc, keyed by the edges and the X squares; the idea from natsu's neural-reversi, GPL-3.0, written anew) */
-#define CORR_SIZE (1 << 16)
 #define CORR_LIMIT (8 * 16)
 static inline int corr_index(const Board *board)
 {
 	const unsigned long long m = 0xFFC381818181C3FFULL; // edges and X squares (the mask is the same under the 8 symmetries)
 	const unsigned long long h = ((board->player & m) * 0x9E3779B97F4A7C15ULL) ^ ((board->opponent & m) * 0xC2B2AE3D27D4EB4FULL);
-	return (int) (h >> 48);
+	return (int) (h >> (64 - CORR_BITS));
 }
 static inline int corr_get(const Search *search)
 {
@@ -563,6 +562,7 @@ static void corr_learn(Search *search, const int alpha, const int score, const i
 	if (score > alpha && score > e) diff = score - e;		// lower bound above the evaluation
 	else if (score <= alpha && score < e) diff = score - e;	// upper bound below it
 	if (diff == 0) return;
+	diff = MAX(-8, MIN(8, diff));
 	short *c = search->corr + corr_index(&search->board);
 	const int v = *c + diff * 16 * MIN(depth, 16) / 64;
 	*c = (short) MAX(-CORR_LIMIT, MIN(CORR_LIMIT, v));
@@ -993,11 +993,10 @@ int NWS_midgame(Search *search, const int alpha, int depth, Node *parent)
 		eval0 = search->eval;
 		Move *const first_move = node_first_move(&node, &movelist);
 		for (move = first_move; move; move = node_next_move(&node)) {
-			const int order = node.n_moves_done + 1; // (taken before a slave can take the next move)
 			if (!node_split(&node, move)) {
 				search_update_midgame(search, move);
 				if (move != first_move) ++search->pv_dev[search->height];
-				const int r = options.lmr ? lmr_reduction(search, depth, order, move->x == hash_data.data.move[0]) : 0;
+				const int r = options.lmr ? lmr_reduction(search, depth, node_move_rank(&node, move), move->x == hash_data.data.move[0]) : 0;
 				if (r) {
 					move->score = -NWS_midgame(search, ~alpha, depth - 1 - r, &node);
 					if (move->score > alpha && !search->stop) move->score = -NWS_midgame(search, ~alpha, depth - 1, &node);
@@ -1155,9 +1154,11 @@ int PVS_midgame(Search *search, const int alpha, const int beta, int depth, Node
 				if (!node_split(&node, move)) {
 					const int alpha = node.alpha;
 					search_update_midgame(search, move);
-					++search->pv_dev[search->height];
+					const int off = (search->height > 1 || options.pc_dev_root); // (height 1: the root of a lazy helper)
+					search->pv_dev[search->height] += off;
 					move->score = -NWS_midgame(search, -alpha - 1, depth - 1, &node);
 					if (!search->stop && alpha < move->score && move->score < beta) {
+						search->pv_dev[search->height] -= off; // (searched again as the principal variation)
 						search->node_type[search->height] = PV_NODE;
 						move->score = -PVS_midgame(search, -beta, -alpha, depth - 1, &node);
 					}

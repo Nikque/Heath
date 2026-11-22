@@ -512,6 +512,7 @@ void search_init_with(Search *search, const int n_task, const int hash_bits)
 	search->options.time = TIME_MAX;
 	search->options.time_per_move = false;
 	search->options.time_max = 0;
+	search->options.time_left = 0;
 	search->n_lazy = 0;
 	search->lazy_helper = false;
 	search->options.verbosity = options.verbosity;
@@ -663,7 +664,7 @@ void search_clone(Search *search, Search *master)
  */
 void search_cleanup(Search *search)
 {
-	if (search->corr) memset(search->corr, 0, (1 << 16) * sizeof (short)); // (search-b)
+	if (search->corr) memset(search->corr, 0, (1 << CORR_BITS) * sizeof (short)); // (search-b)
 	hash_cleanup(&search->hash_table);
 	hash_cleanup(&search->pv_table);
 	hash_cleanup(&search->shallow_table);
@@ -803,6 +804,7 @@ void search_set_game_time(Search *search, const long long t)
 	search->options.time_per_move = false;
 	search->options.time = t;
 	search->options.time_max = 0;
+	search->options.time_left = 0;
 }
 
 /**
@@ -819,6 +821,7 @@ void search_set_move_time(Search *search, const long long t)
 	search->options.time_per_move = true;
 	search->options.time = t;
 	search->options.time_max = 0;
+	search->options.time_left = 0;
 }
 
 /**
@@ -837,6 +840,7 @@ void search_set_move_time_limit(Search *search, const long long t, const long lo
 	search->options.time_per_move = true;
 	search->options.time = t;
 	search->options.time_max = (tmax >= t) ? tmax : 0;
+	search->options.time_left = 0;
 }
 
 /** time_ext: is the time of this move managed by time_ext ? */
@@ -869,9 +873,7 @@ static void search_time_ext_apply(Search *search)
 static void search_time_ext_init(Search *search, const long long spent)
 {
 	search->time.base = MAX(search->options.time - 10, 100);
-	search->time.start = spent;
-	search->time.iter_start = spent;
-	search->time.last_iter = search->time.prev_iter = 0;
+	search->time.start = spent; // (the iterations are timed apart: after a hit of the pondering, those before count)
 	search->time.instability = 0.0;
 	search->time.grow = 1.0;
 	search->time.bonus = 0;
@@ -890,8 +892,17 @@ void search_time_ext_bonus(Search *search)
 	search_time_ext_apply(search);
 }
 
+/** An iteration ended: its time (measured while pondering too: the estimate of the next one needs it after a hit) */
+void search_iteration_timed(Search *search)
+{
+	const long long now = search_time(search);
+	search->time.prev_iter = search->time.last_iter;
+	search->time.last_iter = now - search->time.iter_start;
+	search->time.iter_start = now;
+}
+
 /**
- * @brief An iteration ended (time_ext): measure it, and set the time of the move from how hard it looks.
+ * @brief An iteration ended (time_ext): set the time of the move from how hard it looks.
  *
  * @param search Search (the master).
  * @param move best move.
@@ -899,10 +910,7 @@ void search_time_ext_bonus(Search *search)
  */
 void search_iteration_done(Search *search, const int move, const int score)
 {
-	const long long now = search_time(search);
-	search->time.prev_iter = search->time.last_iter;
-	search->time.last_iter = now - search->time.iter_start;
-	search->time.iter_start = now;
+	search->time.extended = false; // (the time of a fail low was for the iteration that has just ended)
 	search->time.stable = (move == search->time.last_move) ? search->time.stable + 1 : 0;
 	if (search->depth >= 10) { // (shallow iterations: unstable by nature)
 		if (search->time.last_move != NOMOVE) {
@@ -927,6 +935,7 @@ void search_iteration_done(Search *search, const int move, const int score)
 void search_time_init(Search *search)
 {
 	search->time.target = 0; // (time_ext off until search_time_ext_init())
+	search->time.iter_start = search->time.last_iter = search->time.prev_iter = 0;
 	if (search->options.time_per_move) {
 		const long long t = MAX(search->options.time - 10, 100);
 		search->time.extra = t;

@@ -124,7 +124,6 @@ static bool get_helper(Node *master, Node *node, Move *move)
 				task->is_helping = true;
 				task->node = node;
 				task->move = move;
-				task->order = node->n_moves_done + 1;
 				search_clone(task->search, node->search);
 				lock(node);
 					{ const int n = node->n_slave; node->slave[n] = task->search; node->n_slave = n + 1; }
@@ -184,7 +183,6 @@ bool node_split(Node *node, Move *move)
 		} else if ((task = task_stack_get_idle_task(search->tasks)) != NULL) {
 			task->node = node;
 			task->move = move;
-			task->order = node->n_moves_done + 1;
 			search_clone(task->search, search);
 			lock(node);
 				{ const int n = node->n_slave; node->slave[n] = task->search; node->n_slave = n + 1; }
@@ -299,6 +297,19 @@ void node_update(Node* node, Move *move)
 }
 
 /**
+ * @brief Rank of a move in its node (1 = first), for the late move reductions.
+ *
+ * Counted on the list, whose order is fixed while the node is searched: n_moves_done may have been raised by
+ * another thread since the move was handed out.
+ */
+int node_move_rank(const Node *node, const Move *move)
+{
+	int rank = 1;
+	for (const Move *m = node->first; m && m != move; m = m->next) ++rank;
+	return rank;
+}
+
+/**
  * @brief Get the first move of the move list.
  *
  * This is thread/safe getter of the first move. If the search is stopped,
@@ -316,6 +327,7 @@ Move* node_first_move(Node *node, MoveList *movelist)
 		node->n_moves_todo = movelist->n_moves;
 		node->n_moves_done = 0;
 		node->move = movelist_first(movelist);
+		node->first = node->move;
 		if (node->move && !node->search->stop) {
 			assert(node->alpha < node->beta);
 			move = node->move;
@@ -439,7 +451,6 @@ void task_search(Task *task)
 
 	YBWC_STATS(++task->n_calls;)
 
-	int order = task->order;
 	while (move && !search->stop) {
 		const int alpha = node->alpha;
 		if (alpha >= node->beta) break;
@@ -448,11 +459,12 @@ void task_search(Task *task)
 		eval0 = search->eval;
 		search_update_midgame(search, move);
 		if (node->height || options.pc_dev_root) ++search->pv_dev[search->height]; // (a split move is never the first one)
-		{	const int r = (options.lmr && !node->pv_node) ? lmr_reduction(search, node->depth, order, false) : 0; // (search-b)
+		{	const int r = (options.lmr && !node->pv_node) ? lmr_reduction(search, node->depth, node_move_rank(node, move), false) : 0; // (search-b)
 			move->score = -NWS_midgame(search, -alpha - 1, node->depth - 1 - r, node);
 			if (r && move->score > alpha && !search->stop) move->score = -NWS_midgame(search, -alpha - 1, node->depth - 1, node);
 		}
 			if (alpha < move->score && move->score < node->beta) {
+				if (node->height || options.pc_dev_root) --search->pv_dev[search->height]; // (searched again as the principal variation)
 				move->score = -PVS_midgame(search, -node->beta, -alpha, node->depth - 1, node);
 				assert(node->pv_node == true);
 			}
@@ -487,7 +499,6 @@ void task_search(Task *task)
 			}
 		}
 		move = node_next_move_lockless(node);
-		order = node->n_moves_done + 1;
 		unlock(node);
 	}
 

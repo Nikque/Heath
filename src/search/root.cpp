@@ -403,6 +403,7 @@ int PVS_root(Search *search, const int alpha, const int beta, const int depth)
 					if (options.pc_dev_root) ++search->pv_dev[search->height];
 						move->score = -search_route_PVS(search, -alpha - 1, -alpha, depth - 1, &node);
 						if (alpha < move->score && move->score < beta) {
+							if (options.pc_dev_root) --search->pv_dev[search->height]; // (searched again as the principal variation)
 							search->node_type[search->height] = PV_NODE;
 							move->score = -search_route_PVS(search, -beta, -alpha, depth - 1, &node);
 						}
@@ -724,6 +725,7 @@ static int root_others_above(Search *search, const int best, const int a, const 
  */
 static bool root_continue(Search *search)
 {
+	if (search->stop == RUNNING) search_iteration_timed(search);
 	if (search->stop != RUNNING || !search_time_ext_on(search)) return search_continue(search);
 
 	const int move = search->result->move, score = search->result->score;
@@ -776,7 +778,7 @@ void iterative_deepening(Search *search, int alpha, int beta)
 	// search-b (here, not only in search_run(): cassio calls this function itself)
 	search->pv_dev[0] = 0;
 	if (options.corr && search->corr == NULL) {
-		search->corr = (short*) calloc(1 << 16, sizeof (short)); // (128 KB)
+		search->corr = (short*) calloc(1 << CORR_BITS, sizeof (short)); // (128 KB)
 		if (search->corr == NULL) fatal_error("Cannot allocate a correction table\n");
 	}
 
@@ -926,7 +928,7 @@ void iterative_deepening(Search *search, int alpha, int beta)
 	if (search->options.depth >= search->eval.n_empties) search->depth = search->eval.n_empties;
 
 	// iterative selectivity
-	t = (search->options.time - search_time(search));
+	t = ((search->options.time_left > 0 ? search->options.time_left : search->options.time) - search_time(search)); // (the clock, also when the move has a time of its own)
 	has_time = (solvable_depth(t / 10, search_count_tasks(search)) > search->depth);
 	for (; search->selectivity <= search->options.selectivity; ++search->selectivity) {
 		if (search->depth == search->eval.n_empties && 

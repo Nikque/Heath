@@ -317,6 +317,7 @@ static void option_pc_end(const char *option, const char *value, double table[61
 			p += used;
 			if (*p != ',') break;
 			++p;
+			if (*p == 0) { n = 0; break; } // (a comma with nothing after it)
 		}
 		if (n && *p) n = 0;
 	}
