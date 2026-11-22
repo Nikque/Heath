@@ -95,7 +95,8 @@ typedef struct {
 	bool speed_set;                       /**< speed given by the user; otherwise the time management uses the measured search speed */
 	bool level_set;                       /**< level given by the user (with a time control, it caps the search level) */
 	int probcut_model;                    /**< probcut error model: 0 = standard, 1 = refit (the default, see eval.c) */
-	/* search options of 2026-11-22 (search-b): every default keeps the search of v4.5.5-heath.19, node for node */
+	/* search options of 2026-11-22 (search-b): every default keeps the search of v4.5.5-heath.19, node for node, but
+	 * time_stop_master (a correction: only searches of several threads on a clock change) */
 	int time_ext;                         /**< game time: 1 = the time of each move from the clock, may stretch up to time_ext_max x, decides before a new iteration */
 	double time_ext_max;                  /**< longest stretch of the time of a move (x its time) */
 	double time_ext_h;                    /**< part of the estimated next iteration that must fit to start it */
@@ -105,7 +106,7 @@ typedef struct {
 	int time_close;                       /**< time_ext: more time when another move is within this many discs (0: off) */
 	int time_close_empties;               /**< time_close: fewest empties */
 	int time_model;                       /**< with a game time: 0 = the time of Edax; 1 = the time of each move from the clock (implied by time_ext) */
-	bool time_stop_master;                /**< a split search compares the time with the times of the master, not with its own copy (implied by time_ext) */
+	bool time_stop_master;                /**< a split search compares the time with the times of the master, not with its own copy (the default; false: as up to heath.19) */
 	int sort_eval_shift[3];               /**< move sorting: right shift of the eval weight for sort depths 0, 1-2, 3+ (default 2,1,0) */
 	int sort_min_depth;                   /**< move sorting: lowest depth of the sorting with an evaluation (0 = the table) */
 	bool split_probe;                     /**< split the nodes of probcut searches between threads (true as before) */

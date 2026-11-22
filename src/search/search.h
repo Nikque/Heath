@@ -255,6 +255,7 @@ int search_count_tasks(const Search *);
 
 bool is_depth_solving(const int, const int);
 int solvable_depth(const long long, int);
+void search_share_clock(const long long, const long long, const int, const int, long long*, long long*);
 void search_update_speed(Search*);
 void pv_debug(Search*, const Move*, FILE*);
 int search_get_pv_cost(Search*);

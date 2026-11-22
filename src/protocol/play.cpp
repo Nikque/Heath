@@ -312,10 +312,8 @@ static int play_level(void)
  * @brief Give the search the time of the move to play.
  *
  * As before: a time per move, or the game time (shared by the search). With a game time and time-model 1 or time-ext 1
- * (search-b, 2026-11-22), the time of each move is taken here from the clock: the midgame time is shared over the
- * moves down to 24 empties (1.5 times an even share, the earlier moves get more), 0.75 s and 0.05 s per remaining
- * move are kept aside, and 1 s for the endgame; with time-ext, a hard move may stretch up to time-ext-max times its time (at most a third
- * of the clock left).
+ * (search-b, 2026-11-22), the time of each move is taken from the clock by search_share_clock(); with time-ext, a
+ * hard move may stretch.
  * @param play Play.
  * @param search Search.
  */
@@ -325,17 +323,10 @@ static void play_set_search_time(Play *play, Search *search)
 		search_set_move_time(search, options.time);
 	} else if ((options.time_model == 1 || options.time_ext) && options.play_type == EDAX_TIME_PER_GAME) {
 		const long long left = play->time[play->player].left;
-		const int empties = board_count_empties(&play->board);
-		const int moves_left = MAX(1, (empties + 1) / 2);
-		const double spendable = MAX(0.0, (double) left - 750.0 - 50.0 * moves_left);
-		const double room = (empties > 24) ? MAX(0.0, spendable - 1000.0) : spendable; // (1 s is kept for the endgame)
-		double t;
-		if (empties > 24) t = MIN(room, 1.5 * room / MAX(1, (empties - 24 + 1) / 2));
-		else t = 1.5 * room / moves_left;
-		t = MAX(50.0, MIN(t, (double) left - 250.0));
+		long long t, tmax;
+		search_share_clock(options.time, left, board_count_empties(&play->board), search_count_tasks(search), &t, &tmax);
 		// (tmax = t: no room to stretch, but still no iteration that cannot end in time)
-		const double tmax = options.time_ext ? MAX(t, MIN(options.time_ext_max * t, room / 3.0)) : 0.0;
-		search_set_move_time_limit(search, (long long) t, (long long) tmax);
+		search_set_move_time_limit(search, t, options.time_ext ? tmax : 0);
 		search->options.time_left = left;
 	} else {
 		search_set_game_time(search, play->time[play->player].left);

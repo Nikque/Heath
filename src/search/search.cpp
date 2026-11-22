@@ -791,6 +791,54 @@ int solvable_depth(const long long limit, int n_tasks)
 }
 
 /**
+ * @brief The time of a move from the clock (time-model 1, time-ext).
+ *
+ * The endgame begins at the empties that the measured speed (threads included, as in solvable_depth) solves twice
+ * within a tenth of the clock of the game; that time is kept for it, and is not recomputed from the clock left: the
+ * midgame would eat it move after move. The time before it is shared over the moves down to there, 1.5 times an
+ * even share (the earlier moves get more); from there on a move has half the clock left (a solved position takes
+ * only what it needs). Kept aside: 110 ms for each next move from 15 empties up (a search takes 100 ms at least,
+ * see search_time_init), 5 ms for each remaining move, and a twentieth of the clock left, at most 0.25 s.
+ *
+ * @param clock clock of the game in ms.
+ * @param left clock left in ms.
+ * @param empties empties of the position.
+ * @param n_tasks threads of the search.
+ * @param time time of the move.
+ * @param time_max longest time of the move (time_ext_max times it, at most a third of what is shared).
+ */
+void search_share_clock(const long long clock, const long long left, const int empties, const int n_tasks, long long *time, long long *time_max)
+{
+	const double nodes_per_ms = 0.001 * (search_speed() * (SMP_W + SMP_C) / (SMP_W / n_tasks + SMP_C));
+	const double tenth = 0.1 * MAX(clock, left); // (a clock with an increment may grow)
+	int endgame = 15;
+	double reserve = tenth;
+
+	for (int d = 60; d >= 15; --d) {
+		const double twice = 2.2 * pow(BRANCHING_FACTOR, d) / nodes_per_ms; // (twice, and a little for the margins)
+		if (twice <= tenth) {
+			endgame = d;
+			reserve = twice;
+			break;
+		}
+	}
+
+	const int moves_left = MAX(1, (empties + 1) / 2);
+	const int searched = MAX(0, (empties - 15) / 2); // next moves with a search of 100 ms at least
+	const double safety = MAX(0.0, MIN(250.0, left / 20.0));
+	const double spendable = MAX(0.0, left - safety - 5.0 * moves_left - 110.0 * searched);
+	double room = spendable, t = 0.5 * spendable;
+
+	if (empties > endgame) {
+		room = MAX(spendable - reserve, 0.05 * spendable);
+		t = MIN(room, 1.5 * room / MAX(1, (empties - endgame + 1) / 2));
+	}
+	t = MAX(50.0, t);
+	*time = (long long) t;
+	*time_max = (long long) MAX(t, MIN(options.time_ext_max * t, room / 3.0));
+}
+
+/**
  * @brief set time to search.
  *
  * This function should be called before each new search, with the accurate
@@ -1080,8 +1128,16 @@ void search_check_timeout(Search *search)
 				}
 				spin_unlock(result);
 			}
-			// (time_ext: a split search keeps the times copied when it was cloned: the master's are the current ones)
-			if (t > ((master->options.time_max > 0 || options.time_stop_master) ? master->time.extra : search->time.extra)) {
+			// A split search keeps the times copied when it was cloned. Up to heath.19 it compared with them: having
+			// just given the master more time (a fail low), it stopped the whole search at the old time. The master's
+			// are the current ones, read again under the lock that their change is made with.
+			long long extra = search->time.extra;
+			if (master->options.time_max > 0 || options.time_stop_master) {
+				spin_lock(master->result);
+				extra = master->time.extra;
+				spin_unlock(master->result);
+			}
+			if (t > extra) {
 				search_stop_all(master, STOP_TIMEOUT);
 			}
 		}

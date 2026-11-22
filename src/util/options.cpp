@@ -80,7 +80,7 @@ Options options = {
 	// search-b (2026-11-22): all off, the search of v4.5.5-heath.19
 	.time_ext = 0, .time_ext_max = 2.0, .time_ext_h = 0.5, .time_ext_hard = 1,
 	.time_sep = 0, .time_sep_depth = 20, .time_close = 0, .time_close_empties = 38,
-	.time_model = 0, .time_stop_master = false,
+	.time_model = 0, .time_stop_master = true, // (a fault of heath.19 and before: see search_check_timeout)
 	.sort_eval_shift = {2, 1, 0}, .sort_min_depth = 0,
 	.split_probe = true,
 	.pc_r = 1.0, .pc_end = {0.0}, .pc_dev_d0 = 0, .pc_dev_k = 0.0, .pc_dev_fmin = 1.0, .pc_dev_root = true, .pc_mob = {{0.0}}, .pc_gate = true,
@@ -142,7 +142,7 @@ void options_usage(void)
 		"  -time-close <n>               time-ext: more time when another move is within n discs (0: off).\n"
 		"  -time-close-empties <n>       fewest empties for time-close (38).\n"
 		"  -time-model <0|1>             game time: 1 = time of each move from the clock (implied by time-ext).\n"
-		"  -time-stop-master <on/off>    split searches obey the extended time of the master (implied by time-ext).\n"
+		"  -time-stop-master <on/off>    split searches obey the extended time of the master (on).\n"
 		"  -sort-eval-shift <a,b,c>      move sorting: weight shifts of the evaluation (2,1,0).\n"
 		"  -sort-min-depth <n>           move sorting: lowest depth with an evaluation (0: the table).\n"
 		"  -split-probe <on/off>         split the searches of probcut between threads (on).\n"
