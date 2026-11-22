@@ -635,7 +635,7 @@ static void lazy_stop(Search *search)
 }
 
 /**
- * @brief Start the lazy helpers of the root for an iteration (search-b, lazy k; after run/mklz.py of 2026-11-03).
+ * @brief Start the lazy helpers of the root for an iteration (option lazy k).
  *
  * Idle tasks search the root, with no split, and only fill the shared hash table: during the iterative deepening
  * 2 or 4 plies deeper; during the iterative selectivity, at the same depth with 1 or 2 more selectivity levels
