@@ -95,6 +95,34 @@ typedef struct {
 	bool speed_set;                       /**< speed given by the user; otherwise the time management uses the measured search speed */
 	bool level_set;                       /**< level given by the user (with a time control, it caps the search level) */
 	int probcut_model;                    /**< probcut error model: 0 = standard, 1 = refit (the default, see eval.c) */
+	/* search options of 2026-11-22 (search-b): every default keeps the search of v4.5.5-heath.19, node for node, but
+	 * time_stop_master (a correction: only searches of several threads on a clock change) */
+	int time_ext;                         /**< game time: 1 = the time of each move from the clock, may stretch up to time_ext_max x, decides before a new iteration */
+	double time_ext_max;                  /**< longest stretch of the time of a move (x its time) */
+	double time_ext_h;                    /**< part of the estimated next iteration that must fit to start it */
+	int time_ext_hard;                    /**< 1 = the time of a move grows with an unstable best move or a falling score */
+	int time_sep;                         /**< time_ext: play at once when every other move is proved this many discs worse (0: off) */
+	int time_sep_depth;                   /**< time_ext: lowest depth of the iterations followed by the extra searches of time_sep and time_close */
+	int time_close;                       /**< time_ext: more time when another move is within this many discs (0: off) */
+	int time_close_empties;               /**< time_close: fewest empties */
+	int time_model;                       /**< with a game time: 0 = the time of Edax; 1 = the time of each move from the clock (implied by time_ext) */
+	bool time_stop_master;                /**< a split search compares the time with the times of the master, not with its own copy (the default; false: as up to heath.19) */
+	int sort_eval_shift[3];               /**< move sorting: right shift of the eval weight for sort depths 0, 1-2, 3+ (default 2,1,0) */
+	int sort_min_depth;                   /**< move sorting: lowest depth of the sorting with an evaluation (0 = the table) */
+	bool split_probe;                     /**< split the nodes of probcut searches between threads (true as before) */
+	double pc_r;                          /**< probcut: factor of all the margins */
+	double pc_end[61];                    /**< probcut: factor of the margins of the searches to the end (depth == empties), by empties (0: none) */
+	int pc_dev_d0;                        /**< probcut: moves off the PV without narrowing */
+	double pc_dev_k;                      /**< probcut: narrowing per move off the PV beyond pc_dev_d0 */
+	double pc_dev_fmin;                   /**< probcut: narrowest factor off the PV */
+	bool pc_dev_root;                     /**< probcut: count the moves of the root after the first one as off the PV */
+	double pc_mob[3][3];                  /**< probcut: factor a + b log(own moves) + c log(opponent moves) for up to 34, 46 and 60 empties, off with 0,0,0 */
+	bool pc_gate;                         /**< probcut: the evaluation decides whether a shallow search is tried (false: always tried, to count) */
+	bool corr;                            /**< correction history of the evaluation of the probcut gate */
+	bool corr_end;                        /**< correction history: learn from the searches to the end too */
+	int lmr;                              /**< late move reductions: 0 off, 1 outside probcut searches, 2 everywhere */
+	int lazy;                             /**< helper tasks searching the root deeper (filling the hash table): 0 off */
+	int lazy_min;                         /**< lazy helpers: lowest depth of an iteration with helpers */
 	int book_depth;                       /**< book depth set at startup (book-depth); 0 = auto: keep the depth of the loaded book */
 	int book_format;                      /**< form of the saved book files (book-format): 1 (Edax 4), 2 (NEDXBOOK); 0 = auto: the form of the loaded file; for a new book, the form of the book file it replaces, else 1 */
 	int book_store_tasks;                 /**< games learned at the same time by book store/add/learn (each game uses n_task / book_store_tasks threads), and leaf searches of book link done at the same time; 0 = auto (n_task, the default), 1 = one position after the other */
