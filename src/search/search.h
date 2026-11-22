@@ -108,15 +108,21 @@ typedef struct Search {
 		long long  maxi;                          /**< maximal alloted time */
 		long long  base;                          /**< time of the move (time_ext: per-move time) */
 		long long  start;                         /**< time when the thinking on this move began (time_ext) */
+		long long  target;                        /**< no new iteration that does not fit in it (time_ext; 0: not set) */
+		long long  bonus;                         /**< more time, for a close second move (time_close) */
 		long long  last_iter, prev_iter;          /**< times of the last two iterations (time_ext) */
 		long long  iter_start;                    /**< time when the current iteration began (time_ext) */
 		double     instability;                   /**< changes of the best move, decaying (time_ext) */
+		double     grow;                          /**< factor of the time of the move (time_ext_hard) */
 		int        last_move, last_score;         /**< best move and score after the last iteration (time_ext) */
+		int        stable;                        /**< iterations in a row that kept the best move (time_sep) */
+		bool       close_done;                    /**< the search of time_close was done for this move */
+		bool       settled;                       /**< play now (time_sep) */
 	} time;                                       /**< time */
 	MoveList movelist;                            /**< list of moves */
 	int height;                                   /**< search height from root */
 	NodeType node_type[GAME_SIZE];                /**< node type (pv node, cut node, all node) */
-	short *corr;                                  /**< correction history of the probcut gate (search-b, thread local) */
+	short *corr;                                  /**< correction history of the probcut gate (search-b, the table of the master: shared by its threads) */
 	unsigned char pv_dev[GAME_SIZE];              /**< moves off the principal variation from the root (search-b, probcut) */
 	Bound stability_bound;                        /**< score bounds according to stable squares */
 
@@ -170,6 +176,8 @@ void search_set_game_time(Search*, const long long);
 void search_set_move_time(Search*, const long long);
 void search_set_move_time_limit(Search*, const long long, const long long);
 void search_iteration_done(Search*, const int, const int);
+bool search_time_ext_on(const Search*);
+void search_time_ext_bonus(Search*);
 void search_time_init(Search*);
 void search_time_reset(Search*, const Board*);
 void search_adjust_time(Search*, const bool);

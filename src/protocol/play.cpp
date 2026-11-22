@@ -311,7 +311,7 @@ static int play_level(void)
 /**
  * @brief Give the search the time of the move to play.
  *
- * As before: a time per move, or the game time (shared by the search). With a game time and time-model 1
+ * As before: a time per move, or the game time (shared by the search). With a game time and time-model 1 or time-ext 1
  * (search-b, 2026-11-22), the time of each move is taken here from the clock: the midgame time is shared over the
  * moves down to 24 empties (1.5 times an even share, the earlier moves get more), 0.75 s and 0.05 s per remaining
  * move are kept aside; with time-ext, a hard move may stretch up to time-ext-max times its time (at most a third
@@ -323,7 +323,7 @@ static void play_set_search_time(Play *play, Search *search)
 {
 	if (options.play_type == EDAX_TIME_PER_MOVE) {
 		search_set_move_time(search, options.time);
-	} else if (options.time_model == 1 && options.play_type == EDAX_TIME_PER_GAME) {
+	} else if ((options.time_model == 1 || options.time_ext) && options.play_type == EDAX_TIME_PER_GAME) {
 		const long long left = play->time[play->player].left;
 		const int empties = board_count_empties(&play->board);
 		const int moves_left = MAX(1, (empties + 1) / 2);
@@ -332,7 +332,8 @@ static void play_set_search_time(Play *play, Search *search)
 		if (empties > 24) t = MIN(spendable, 1.5 * spendable / MAX(1, (empties - 24 + 1) / 2));
 		else t = 1.5 * spendable / moves_left;
 		t = MAX(50.0, MIN(t, (double) left - 250.0));
-		const double tmax = options.time_ext ? MIN(options.time_ext_max * t, MAX(t, spendable / 3.0)) : 0.0;
+		// (tmax = t: no room to stretch, but still no iteration that cannot end in time)
+		const double tmax = options.time_ext ? MAX(t, MIN(options.time_ext_max * t, spendable / 3.0)) : 0.0;
 		search_set_move_time_limit(search, (long long) t, (long long) tmax);
 	} else {
 		search_set_game_time(search, play->time[play->player].left);

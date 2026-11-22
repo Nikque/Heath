@@ -499,18 +499,6 @@ int search_eval_2(Search *search, int alpha, int beta, unsigned long long moves)
 	return bestscore;
 }
 
-/**
- * @brief Probcut
- *
- * Check if a position is worth to analyze further.
- *
- * @param search Position to test.
- * @param alpha Alpha lower bound.
- * @param depth Search depth.
- * @param parent Parent node.
- * @param value Returned value.
- * @return true if probable cutoff has been found, false otherwise.
- */
 static inline void search_update_probcut(Search *search, const NodeType node_type) 
 {
 	search->node_type[search->height] = node_type;
@@ -551,13 +539,13 @@ int lmr_reduction(const Search *search, const int depth, const int order, const 
 	return r;
 }
 
-/* search-b (2026-11-22): correction history of the evaluation of the probcut gate (each thread its own table,
- * 1/16 disc, keyed by the edges and the X squares; the idea from natsu's neural-reversi, GPL-3.0, written anew) */
+/* search-b (2026-11-22): correction history of the evaluation of the probcut gate (one table for a search
+ * and its threads, 1/16 disc, keyed by the edges and the X squares; the idea from natsu's neural-reversi, GPL-3.0, written anew) */
 #define CORR_SIZE (1 << 16)
 #define CORR_LIMIT (8 * 16)
 static inline int corr_index(const Board *board)
 {
-	const unsigned long long m = 0xFFC381818181C3FFULL; // edges and X squares: the same under the 8 symmetries
+	const unsigned long long m = 0xFFC381818181C3FFULL; // edges and X squares (the mask is the same under the 8 symmetries)
 	const unsigned long long h = ((board->player & m) * 0x9E3779B97F4A7C15ULL) ^ ((board->opponent & m) * 0xC2B2AE3D27D4EB4FULL);
 	return (int) (h >> 48);
 }
@@ -581,22 +569,49 @@ static void corr_learn(Search *search, const int alpha, const int score, const i
 }
 
 /* search-b: factor of the probcut margins (1.0 with the default options: the margins of v4.5.5-heath.19) */
-static double probcut_factor(const Search *search, const int depth, const int n_moves)
+static double probcut_factor(const Search *search, const int depth, const int n_moves, const bool with_dev)
 {
+	const int empties = search->eval.n_empties;
 	double f = options.pc_r;
-	if (depth >= search->eval.n_empties) f *= options.pc_end;
-	if (options.pc_dev_k > 0.0) {
+	if (depth >= empties && options.pc_end[empties] > 0.0) f *= options.pc_end[empties];
+	if (with_dev && options.pc_dev_k > 0.0) {
 		const int d = search->pv_dev[search->height];
 		if (d > options.pc_dev_d0) f *= MAX(options.pc_dev_fmin, 1.0 - options.pc_dev_k * (d - options.pc_dev_d0));
 	}
-	if (options.pc_mob[0] != 0.0 || options.pc_mob[1] != 0.0 || options.pc_mob[2] != 0.0) {
+	const double *const mob = options.pc_mob[empties <= 34 ? 0 : empties <= 46 ? 1 : 2];
+	if (mob[0] != 0.0 || mob[1] != 0.0 || mob[2] != 0.0) {
 		const int n_opp = bit_count(get_moves(search->board.opponent, search->board.player));
-		const double m = options.pc_mob[0] + options.pc_mob[1] * log((double) MAX(1, n_moves)) + options.pc_mob[2] * log((double) MAX(1, n_opp));
+		const double m = mob[0] + mob[1] * log((double) MAX(1, n_moves)) + mob[2] * log((double) MAX(1, n_opp));
 		f *= MIN(1.25, MAX(0.8, m));
 	}
 	return f;
 }
 
+#ifdef PROBCUT_COUNT
+/* search-b: how often the moves off the principal variation change the (whole discs) margin (build with /D PROBCUT_COUNT) */
+static void probcut_count_dev(const Search *search, const int depth, const int probcut_depth, const int n_moves, const double t, const int probcut_error)
+{
+	const int d = MIN(15, search->pv_dev[search->height]);
+	const double ft = probcut_factor(search, depth, n_moves, false) * t;
+	const double sigma = options.probcut_model ? probcut_sigma(search->eval.n_empties, depth, probcut_depth) : eval_sigma(search->eval.n_empties, depth, probcut_depth);
+	const int without = ft * sigma + RCD;
+	++statistics.n_probcut_dev_try[d];
+	if (without != probcut_error) ++statistics.n_probcut_dev_changed[d];
+}
+#endif
+
+/**
+ * @brief Probcut
+ *
+ * Check if a position is worth to analyze further.
+ *
+ * @param search Position to test.
+ * @param alpha Alpha lower bound.
+ * @param depth Search depth.
+ * @param parent Parent node.
+ * @param value Returned value.
+ * @return true if probable cutoff has been found, false otherwise.
+ */
 static bool search_probcut(Search *search, const int alpha, const int depth, const int n_moves, Node *parent, int *value)
 {
 	// assertion 
@@ -622,9 +637,10 @@ static bool search_probcut(Search *search, const int alpha, const int depth, con
 		probcut_depth = 2 * floor(options.probcut_d * depth) + (depth & 1);
 		if (probcut_depth == 0) probcut_depth = depth - 2; 
 		assert(probcut_depth > 1 && probcut_depth <= depth - 2 && (probcut_depth & 1) == (depth & 1));
-		const double ft = probcut_factor(search, depth, n_moves) * t; // (search-b: t with the default options)
+		const double ft = probcut_factor(search, depth, n_moves, true) * t; // (search-b: t with the default options)
 		if (options.probcut_model) probcut_error = ft * probcut_sigma(search->eval.n_empties, depth, probcut_depth) + RCD;	// refit (experimental)
 		else probcut_error = ft * eval_sigma(search->eval.n_empties, depth, probcut_depth) + RCD;
+		PROBCUT_STATS(probcut_count_dev(search, depth, probcut_depth, n_moves, t, probcut_error);)
 
 		// compute evaluation error (i.e. error at depth 0) averaged for both depths
 		eval_score = search_eval_0(search);
@@ -635,7 +651,7 @@ static bool search_probcut(Search *search, const int alpha, const int depth, con
 		eval_beta = beta - eval_error;
 		probcut_beta = beta + probcut_error;
 		probcut_alpha = probcut_beta - 1;
-		if (eval_score >= eval_beta && probcut_beta < SCORE_MAX) { 	// check if trying a beta probcut is worth
+		if ((eval_score >= eval_beta || !options.pc_gate) && probcut_beta < SCORE_MAX) { 	// check if trying a beta probcut is worth
 			PROBCUT_STATS(++statistics.n_probcut_high_try);
 			search_update_probcut(search, CUT_NODE);
 			score = NWS_midgame(search, probcut_alpha, probcut_depth, parent);
@@ -650,7 +666,7 @@ static bool search_probcut(Search *search, const int alpha, const int depth, con
 		// try a probable lower cut if upper cut failed
 		eval_alpha = alpha + eval_error;
 		probcut_alpha = alpha - probcut_error;
-		if (eval_score < eval_alpha && probcut_alpha > SCORE_MIN) { // check if trying an alpha probcut is worth
+		if ((eval_score < eval_alpha || !options.pc_gate) && probcut_alpha > SCORE_MIN) { // check if trying an alpha probcut is worth
 			PROBCUT_STATS(++statistics.n_probcut_low_try);
 			search_update_probcut(search, ALL_NODE);
 			score = NWS_midgame(search, probcut_alpha, probcut_depth, parent);
@@ -977,10 +993,11 @@ int NWS_midgame(Search *search, const int alpha, int depth, Node *parent)
 		eval0 = search->eval;
 		Move *const first_move = node_first_move(&node, &movelist);
 		for (move = first_move; move; move = node_next_move(&node)) {
+			const int order = node.n_moves_done + 1; // (taken before a slave can take the next move)
 			if (!node_split(&node, move)) {
 				search_update_midgame(search, move);
 				if (move != first_move) ++search->pv_dev[search->height];
-				const int r = options.lmr ? lmr_reduction(search, depth, node.n_moves_done + 1, move->x == hash_data.data.move[0]) : 0;
+				const int r = options.lmr ? lmr_reduction(search, depth, order, move->x == hash_data.data.move[0]) : 0;
 				if (r) {
 					move->score = -NWS_midgame(search, ~alpha, depth - 1 - r, &node);
 					if (move->score > alpha && !search->stop) move->score = -NWS_midgame(search, ~alpha, depth - 1, &node);

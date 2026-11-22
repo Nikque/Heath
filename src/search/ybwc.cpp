@@ -124,6 +124,7 @@ static bool get_helper(Node *master, Node *node, Move *move)
 				task->is_helping = true;
 				task->node = node;
 				task->move = move;
+				task->order = node->n_moves_done + 1;
 				search_clone(task->search, node->search);
 				lock(node);
 					{ const int n = node->n_slave; node->slave[n] = task->search; node->n_slave = n + 1; }
@@ -183,6 +184,7 @@ bool node_split(Node *node, Move *move)
 		} else if ((task = task_stack_get_idle_task(search->tasks)) != NULL) {
 			task->node = node;
 			task->move = move;
+			task->order = node->n_moves_done + 1;
 			search_clone(task->search, search);
 			lock(node);
 				{ const int n = node->n_slave; node->slave[n] = task->search; node->n_slave = n + 1; }
@@ -437,6 +439,7 @@ void task_search(Task *task)
 
 	YBWC_STATS(++task->n_calls;)
 
+	int order = task->order;
 	while (move && !search->stop) {
 		const int alpha = node->alpha;
 		if (alpha >= node->beta) break;
@@ -445,7 +448,7 @@ void task_search(Task *task)
 		eval0 = search->eval;
 		search_update_midgame(search, move);
 		if (node->height || options.pc_dev_root) ++search->pv_dev[search->height]; // (a split move is never the first one)
-		{	const int r = (options.lmr && !node->pv_node) ? lmr_reduction(search, node->depth, node->n_moves_done + 1, false) : 0; // (search-b)
+		{	const int r = (options.lmr && !node->pv_node) ? lmr_reduction(search, node->depth, order, false) : 0; // (search-b)
 			move->score = -NWS_midgame(search, -alpha - 1, node->depth - 1 - r, node);
 			if (r && move->score > alpha && !search->stop) move->score = -NWS_midgame(search, -alpha - 1, node->depth - 1, node);
 		}
@@ -484,6 +487,7 @@ void task_search(Task *task)
 			}
 		}
 		move = node_next_move_lockless(node);
+		order = node->n_moves_done + 1;
 		unlock(node);
 	}
 
@@ -590,7 +594,6 @@ static Search* task_search_create(Task *task)
 static void task_search_destroy(Search *search)
 {
 	mm_free(search->thread_hash.hash);
-	free(search->corr); // (search-b: allocated by search_alloc_thread_hash())
 #if ENDGAME_HASH56
 	mm_free(search->thread_hash56.hash);
 #endif

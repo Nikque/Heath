@@ -352,6 +352,13 @@ void movelist_evaluate_fast(MoveList *movelist, Search *search, const unsigned c
 	} while ((move = move->next));
 }
 
+/** weight of the evaluation in the move sorting (search-b: sort-eval-shift a,b,c; 2,1,0 as before) */
+static inline int sort_eval_weight(const int i)
+{
+	const int s = options.sort_eval_shift[i];
+	return s >= 0 ? (w_eval >> s) : (w_eval << -s);
+}
+
 /**
  * @brief Evaluate a list of move in order to sort it.
  *
@@ -372,13 +379,6 @@ void movelist_evaluate_fast(MoveList *movelist, Search *search, const unsigned c
  * @param alpha   Alpha bound to evaluate moves.
  * @param depth   depth for the shallow search
  */
-/** weight of the evaluation in the move sorting (search-b: sort-eval-shift a,b,c; 2,1,0 as before) */
-static inline int sort_eval_weight(const int i)
-{
-	const int s = options.sort_eval_shift[i];
-	return s >= 0 ? (w_eval >> s) : (w_eval << -s);
-}
-
 void movelist_evaluate(MoveList *movelist, Search *search, const HashData *hash_data, const int alpha, const int depth)
 {
 	static const char min_depth_table[64] = {
