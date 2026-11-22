@@ -130,6 +130,8 @@ static void ui_read_input(UI *ui)
 		} else if (string_is(cmd, "stop")) {
 			event_clear_messages(event);
 			info("<stop>\n");
+			play->nboard_go = 0; // (the "go" that waited are cleared: none of them is left to answer)
+			play->stop_pending = false;
 			play_stop(play);
 			if (ui->type == UI_GGS) play_stop(play + 1);
 		} else if (ui->type == UI_NBOARD && string_is(cmd, "ping")) {
