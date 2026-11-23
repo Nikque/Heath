@@ -78,9 +78,8 @@ Options options = {
 	.level_set = false, // level given by the user (else no level cap with a time control)
 	.probcut_model = 1, // probcut model: refit (v4.5.5-newedax.13: the model of the measures of the 64 and the 48 slots)
 	// search-b (2026-11-22): off, the search of v4.5.5-heath.19, but for lazy
-	.time_ext = 0, .time_ext_max = 2.0, .time_ext_h = 0.5, .time_ext_hard = 1,
-	.time_sep = 0, .time_sep_depth = 20, .time_close = 0, .time_close_empties = 38,
-	.time_model = 0, .time_stop_master = true, // (a fault of heath.19 and before: see search_check_timeout)
+	.time_ext = 0, .time_ext_max = 2.0, .time_ext_h = 0.5,
+	.time_stop_master = true, // (a fault of heath.19 and before: see search_check_timeout)
 	.sort_eval_shift = {2, 1, 0}, .sort_min_depth = 0,
 	.split_probe = true,
 	.pc_r = 1.0, .pc_slope = 1.3, .pc_slope_limit = 12, .pc_slope_min = 0, .pc_end = {0.0}, .pc_dev_d0 = 0, .pc_dev_k = 0.0, .pc_dev_fmin = 1.0, .pc_dev_root = true, .pc_mob = {{0.0}}, .pc_gate = true, // (pc-slope 1.3,12: G2, the default of Heath since 11/24)
@@ -133,15 +132,9 @@ void options_usage(void)
 		"  -ponder <on/off>              search during opponent time.\n"
 		"  -keep-hash <on/off>           keep the hash tables when a new board continues the game.\n"
 		"  -probcut-model <refit|standard> probcut error model (default: refit, see README).\n"
-		"  -time-ext <0|1>               game time: time of each move from the clock, stretched for a hard move.\n"
+		"  -time-ext <0|1>               game time: the time of Edax a move, stretched after a fail low.\n"
 		"  -time-ext-max <x>             longest stretch of the time of a move (2.0).\n"
 		"  -time-ext-h <x>               part of the next iteration that must fit in the time left to start it (0.5).\n"
-		"  -time-ext-hard <0|1>          stretch for an unstable best move or a falling score (1).\n"
-		"  -time-sep <n>                 time-ext: play at once when the other moves are n discs worse (0: off).\n"
-		"  -time-sep-depth <n>           lowest depth of the searches of time-sep and time-close (20).\n"
-		"  -time-close <n>               time-ext: more time when another move is within n discs (0: off).\n"
-		"  -time-close-empties <n>       fewest empties for time-close (38).\n"
-		"  -time-model <0|1>             game time: 1 = time of each move from the clock (implied by time-ext).\n"
 		"  -time-stop-master <on/off>    split searches obey the extended time of the master (on).\n"
 		"  -sort-eval-shift <a,b,c>      move sorting: weight shifts of the evaluation (2,1,0).\n"
 		"  -sort-min-depth <n>           move sorting: lowest depth with an evaluation (0: the table).\n"
@@ -445,13 +438,7 @@ int options_read(const char *option, const char *value)
 		else if (string_is(option, "time-ext")) options.time_ext = option_int(option, value, options.time_ext);
 		else if (string_is(option, "time-ext-max")) parse_real(value, &options.time_ext_max);
 		else if (string_is(option, "time-ext-h")) parse_real(value, &options.time_ext_h);
-		else if (string_is(option, "time-ext-hard")) options.time_ext_hard = option_int(option, value, options.time_ext_hard);
-		else if (string_is(option, "time-model")) options.time_model = option_int(option, value, options.time_model);
 		else if (string_is(option, "time-stop-master")) option_boolean(option, value, &options.time_stop_master);
-		else if (string_is(option, "time-sep")) options.time_sep = option_int(option, value, options.time_sep);
-		else if (string_is(option, "time-sep-depth")) options.time_sep_depth = option_int(option, value, options.time_sep_depth);
-		else if (string_is(option, "time-close")) options.time_close = option_int(option, value, options.time_close);
-		else if (string_is(option, "time-close-empties")) options.time_close_empties = option_int(option, value, options.time_close_empties);
 		else if (string_is(option, "sort-eval-shift")) {
 			int s[3];
 			if (value && sscanf(value, "%d,%d,%d", s, s + 1, s + 2) == 3) for (int i = 0; i < 3; ++i) options.sort_eval_shift[i] = s[i];
@@ -738,12 +725,6 @@ void options_bound(void)
 
 	// search-b (2026-11-22)
 	BOUND(options.time_ext, 0, 1, "time-ext");
-	BOUND(options.time_ext_hard, 0, 1, "time-ext-hard");
-	BOUND(options.time_model, 0, 1, "time-model");
-	BOUND(options.time_sep, 0, 64, "time-sep");
-	BOUND(options.time_sep_depth, 10, 60, "time-sep-depth");
-	BOUND(options.time_close, 0, 64, "time-close");
-	BOUND(options.time_close_empties, 0, 60, "time-close-empties");
 	for (int i = 0; i < 3; ++i) BOUND(options.sort_eval_shift[i], -4, 30, "sort-eval-shift");
 	BOUND(options.sort_min_depth, 0, 60, "sort-min-depth");
 	BOUND(options.lmr, 0, 2, "lmr");
