@@ -61,7 +61,6 @@ extern struct Level {
 } LEVEL[61][61];
 
 
-#define CORR_BITS 16 /* size of the correction history (search-b) */
 
 /** search stare */
 typedef struct Search {
@@ -139,7 +138,6 @@ typedef struct Search {
 	const volatile bool *stop_pending;            /**< set: search_run() takes the least time (a stop that came before it began), or NULL */
 
 	/* search-b: after the fields of v4.5.5-heath.19 */
-	short *corr;                                  /**< correction history of the probcut gate (search-b, the table of the master: shared by its threads) */
 	unsigned char pv_dev[GAME_SIZE];              /**< moves off the principal variation from the root (search-b, probcut) */
 	struct Task *lazy[MAX_THREADS];               /**< lazy helpers at the root (search-b) */
 	int n_lazy;                                   /**< number of lazy helpers */

@@ -83,7 +83,6 @@ Options options = {
 	.sort_eval_shift = {2, 1, 0}, .sort_min_depth = 0,
 	.split_probe = true,
 	.pc_r = 1.0, .pc_slope = 1.3, .pc_slope_limit = 12, .pc_slope_min = 0, .pc_end = {0.0}, .pc_dev_d0 = 0, .pc_dev_k = 0.0, .pc_dev_fmin = 1.0, .pc_dev_root = true, .pc_mob = {{0.0}}, .pc_gate = true, // (pc-slope 1.3,12: G2, the default of Heath since 11/24)
-	.corr = false, .corr_end = true,
 	.lmr = 0,
 	.lazy = LAZY_AUTO, .lazy_min = 16, // (lazy auto: the default of Heath)
 	.book_depth = 0, // book depth: auto (the depth of the loaded book)
@@ -147,8 +146,6 @@ void options_usage(void)
 		"  -pc-dev-root <on/off>         probcut: the later moves of the root are off the principal variation (on).\n"
 		"  -pc-mob <a,b,c[,...]>         probcut: factor of the mobility, one set or three (by empties).\n"
 		"  -pc-gate <on/off>             probcut: shallow searches chosen by the evaluation (on).\n"
-		"  -corr <on/off>                probcut: correction history of the evaluation (off).\n"
-		"  -corr-end <on/off>            correction history: learn from the searches to the end (on).\n"
 		"  -lmr <0|1|2>                  late move reductions (0: off).\n"
 		"  -lazy <n|auto>                helper threads at the root (0: off); auto (default): 1 in the\n"
 		"                                midgame with 4 threads or more.\n"
@@ -463,8 +460,6 @@ int options_read(const char *option, const char *value)
 			if (n == 3 || n == 9) for (int i = 0; i < 9; ++i) options.pc_mob[i / 3][i % 3] = m[n == 3 ? i % 3 : i];
 			else warn("option %s needs a,b,c or three times a,b,c\n", option);
 		}
-		else if (string_is(option, "corr")) option_boolean(option, value, &options.corr);
-		else if (string_is(option, "corr-end")) option_boolean(option, value, &options.corr_end);
 		else if (string_is(option, "lmr")) options.lmr = option_int(option, value, options.lmr);
 		else if (string_is(option, "lazy")) options.lazy = option_int_or_auto(option, value, options.lazy, LAZY_AUTO);
 		else if (string_is(option, "lazy-min")) options.lazy_min = option_int(option, value, options.lazy_min);

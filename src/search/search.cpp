@@ -393,7 +393,6 @@ void search_alloc_thread_hash(Search *search)
 	search->thread_hash.hash_mask = (1 << THREAD_LOCAL_HASH_SIZE) - 1;
 	search->thread_hash.n_hash = 1 << THREAD_LOCAL_HASH_SIZE;
 	hash_wipe(&search->thread_hash);	// read directly by NWS_endgame_local(), so really cleared
-	search->corr = NULL; // (search-b: one table for a search and its threads, made by iterative_deepening() with -corr)
 	search->pv_dev[0] = 0;
 #if ENDGAME_HASH56
 	search->thread_hash56.hash = (Hash*) mm_malloc((1 << THREAD_LOCAL_HASH56_SIZE) * sizeof (Hash));
@@ -545,7 +544,6 @@ void search_free(Search *search)
 #if ENDGAME_HASH56
 	mm_free(search->thread_hash56.hash);
 #endif
-	free(search->corr); search->corr = NULL;
 #if ENDGAME_HASH4
 	mm_free(search->thread_hash4.hash);
 #endif
@@ -644,7 +642,6 @@ void search_clone(Search *search, Search *master)
 	search->height = master->height;
 	search->lazy_helper = false; // (set again by lazy_start() for a helper)
 	search->pv_dev[search->height] = master->pv_dev[master->height];
-	search->corr = master->corr; // (shared as the hash tables: a helper search lives for one split only)
 	search->allow_node_splitting = master->allow_node_splitting;
 	search->node_type[search->height] = master->node_type[search->height];
 	search->options = master->options;
@@ -667,7 +664,6 @@ void search_clone(Search *search, Search *master)
  */
 void search_cleanup(Search *search)
 {
-	if (search->corr) memset(search->corr, 0, (1 << CORR_BITS) * sizeof (short)); // (search-b)
 	hash_cleanup(&search->hash_table);
 	hash_cleanup(&search->pv_table);
 	hash_cleanup(&search->shallow_table);

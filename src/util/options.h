@@ -118,8 +118,6 @@ typedef struct {
 	bool pc_dev_root;                     /**< probcut: count the moves of the root after the first one as off the PV */
 	double pc_mob[3][3];                  /**< probcut: factor a + b log(own moves) + c log(opponent moves) for up to 34, 46 and 60 empties, off with 0,0,0 */
 	bool pc_gate;                         /**< probcut: the evaluation decides whether a shallow search is tried (false: always tried, to count) */
-	bool corr;                            /**< correction history of the evaluation of the probcut gate */
-	bool corr_end;                        /**< correction history: learn from the searches to the end too */
 	int lmr;                              /**< late move reductions: 0 off, 1 outside probcut searches, 2 everywhere */
 	int lazy;                             /**< helper tasks searching the root deeper (filling the hash table): 0 off, LAZY_AUTO auto */
 	int lazy_min;                         /**< lazy helpers: lowest depth of an iteration with helpers */

@@ -769,10 +769,6 @@ void iterative_deepening(Search *search, int alpha, int beta)
 
 	// search-b (here, not only in search_run(): cassio calls this function itself)
 	search->pv_dev[0] = 0;
-	if (options.corr && search->corr == NULL) {
-		search->corr = (short*) calloc(1 << CORR_BITS, sizeof (short)); // (128 KB)
-		if (search->corr == NULL) fatal_error("Cannot allocate a correction table\n");
-	}
 
 	// initialize result
 	result->move = NOMOVE;
