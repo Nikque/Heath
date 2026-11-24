@@ -4,6 +4,37 @@ Tests and measurements done for each version, moved without changes from the for
 
 For what changed, see the [release notes](../../RELEASE-NOTES.md). "Above" and "below" in the text refer to positions in the former document.
 
+## v4.5.5-heath.20
+
+- This version with no option and the engine of the matches with the five options (`-time-ext 1 -sort-eval-shift 1,0,0 -sort-min-depth 7 -pc-dev 2,0.04,0.75 -pc-mob 2.219,-0.184,-0.350,0,0,0,0,0,0 -pc-slope 1.3,12 -pc-end 0.85`) were compared with one thread. The scores, the nodes and the principal variations were the same, position by position.
+  - 20 positions of the midgame (level 16): 15,399,727 nodes.
+  - 25 positions of 26 empties (level 21): 1,747,334,603 nodes. The version before, without the five options, searched 2,121,150,718.
+- The games: one thread (4 for lazy), no book, two games a position filled at random, one with each color. The judgement is the z of the discs a game: with z +1.0 or more, as many games are added; taken if the added games are plus and both together have z +1.96 or more.
+
+| Comparison | Time a game | Set | Games | Discs a game | z | Elo |
+|---|---|---|---|---|---|---|
+| `-pc-slope 1.3,12 -pc-end 0.85` / none | 30 s | first | 2,000 | +0.136 [+0.052, +0.220] | +3.18 | +1.4 [-1.0, +3.7] |
+| same | 30 s | added | 2,000 | +0.143 [+0.064, +0.222] | +3.53 | +1.4 [-0.7, +3.4] |
+| same | 30 s | both | 4,000 | +0.140 [+0.082, +0.197] | +4.74 | +1.4 |
+| all five / `-pc-slope` alone | 180 s | first | 1,000 | +0.192 [+0.077, +0.307] | +3.28 | +7.3 [+3.0, +11.6] |
+| same | 180 s | added | 1,000 | +0.170 [+0.062, +0.278] | +3.10 | -2.1 [-6.9, +2.7] |
+| same | 180 s | both | 2,000 | +0.181 [+0.102, +0.260] | +4.51 | +2.6 |
+| `-lazy auto` / `-lazy 0` (4 threads) | 30 s | first | 2,000 | +0.084 [-0.015, +0.183] | +1.66 | -0.2 [-3.1, +2.7] |
+
+- `-pc-dev`, `-pc-mob` and `-time-ext 1` alone did not reach the line of a default (z: `-pc-dev` +0.86, `-pc-mob` +0.51, `-time-ext 1` +0.23). They were taken together, with the options of the order of the moves.
+- The other ways to share the time (`-time-model 1`, `-time-ext-hard`, `-time-sep`, `-time-close`) and `-corr` gained nothing in the games; they are deleted.
+
+- The version with `probcut-model` deleted and the version before (`refit` the default) were compared with no option and one thread: the scores, the nodes and the principal variations were the same, position by position, on the 20 midgame positions (level 16) and the 25 positions of 26 empties (level 21). With `-probcut-model` on the command line, the program shows its usage and ends.
+
+- The Windows programs of the distributions (five for each of the 64 and the 48 slots) solved fforum-20-39 with no wrong move or score. They searched 92,469,514 positions (64 slots) and 93,641,453 (48 slots), the same for the five programs of a slot count.
+- The libedax test (292 checks) of the DLLs (three for each slot count) passed with no failure. In the first run, with four tests at the same time, the `libedax-x64-v4.dll` of the 48 slots had one failure. The same DLL was run 22 more times (12 of them with four at the same time) with no failure. The failed check was not recorded, and its cause was not checked.
+- The 7 jobs of the GitHub CI (release binaries) passed.
+- The Android programs were only built.
+
+Not checked: the effect of the five changes in games with several threads or shorter times, 32 threads, a large real book, an Android device, the Linux and macOS versions, the use from a GUI.
+
+---
+
 ## v4.5.5-heath.20-pre1
 
 - The tests of regressions (62/62), libedax (292 checks), book analysis (11/11), resuming, and book and base (557 checks) passed with no failure.

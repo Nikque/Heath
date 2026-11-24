@@ -12,6 +12,7 @@ Each version contains all changes of the C versions on the same row.
 
 | Heath (newedax) | C (nikque) | C (eval2) |
 |---|---|---|
+| heath.20 | nikque.33 | eval2.20 |
 | heath.20-pre1 | nikque.33-pre1 | eval2.20-pre1 |
 | heath.19 | nikque.32 | eval2.19 |
 | heath.18 | nikque.31 | eval2.19 |
@@ -32,6 +33,54 @@ Each version contains all changes of the C versions on the same row.
 | newedax.3 | nikque.18 | eval2.6 |
 | newedax.2 | nikque.18 | eval2.6 |
 | newedax.1 | nikque.17 | eval2.5 |
+
+---
+
+## v4.5.5-heath.20
+
+The release of v4.5.5-heath.20-pre1 with a better search and lazy auto. The time of a move and the probcut change, and it is stronger than the version before.
+
+**Changes**
+
+- All the changes of v4.5.5-heath.20-pre1.
+- Five changes of the search. They have no setting and are always on.
+
+| What changes | How |
+|---|---|
+| Time of a move in a game | The time of Edax a move. Only after a fail low, it may stretch up to 2 times |
+| Order of the moves | Sorted with the evaluation from the depth 7; the weight shifts of the evaluation are 1,0,0 |
+| Probcut off the principal variation | Narrower (2,0.04,0.75) |
+| Probcut by the mobility | The margin depends on the mobility (2.219,-0.184,-0.350) |
+| Probcut of the searches to the end | A shallow score is read 1.3 times, up to 12 discs; the margin is 0.85 times |
+
+- The default of `lazy` is `auto`: one helper thread searches the root position deeper in a midgame search of at least 4 threads. It is not used to solve the end of the game, in a selective search to the end, or with 3 threads or fewer.
+- The test options are deleted: `-corr`, `-corr-end`, `-time-model`, `-time-ext-hard`, `-time-sep`, `-time-sep-depth`, `-time-close` and `-time-close-empties`.
+- As the five changes are fixed, their options are deleted: `-time-ext`, `-sort-eval-shift`, `-sort-min-depth`, `-pc-slope`, `-pc-dev` and `-pc-mob`. `-pc-end` stays; its default is 0.85.
+- The probcut model is fixed to `refit`, and its setting `probcut-model` (`-probcut-model`, and `probcut-model` in `config.ini`) is deleted. `refit` is the default since v4.5.5-newedax.13, so the search results do not change. `standard` can no longer be used.
+
+**Strength**
+
+One thread, no book, both colors from positions filled at random.
+
+| Comparison | Time a game | Games | Discs a game | Elo |
+|---|---|---|---|---|
+| Probcut of the searches to the end on / off | 30 s | 4,000 | +0.140 [+0.082, +0.197] | +1.4 |
+| All five / the probcut of the searches to the end alone | 180 s | 2,000 | +0.181 [+0.102, +0.260] | +2.6 |
+| lazy auto on / off (4 threads) | 30 s | 2,000 | +0.084 [-0.015, +0.183] | -0.2 |
+
+**Compatibility**
+
+- The search results (scores, nodes, moves) differ from the version before: the probcut and the order of the moves change.
+- A book learned with this version may have other scores than one learned with the version before.
+- The `eval.dat` and the book file format are the same as in the version before.
+
+**Notes**
+
+- With a deleted option on the command line, the program shows its usage and ends. Fix the scripts that pass one.
+
+**Not checked**: the effect of the five changes was measured only in games of 180 s with one thread; not with several threads or shorter times.
+
+[Tests and measurements](docs/validation/newedax.en.md#v455-heath20)
 
 ---
 
