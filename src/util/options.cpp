@@ -83,7 +83,7 @@ Options options = {
 	.time_model = 0, .time_stop_master = true, // (a fault of heath.19 and before: see search_check_timeout)
 	.sort_eval_shift = {2, 1, 0}, .sort_min_depth = 0,
 	.split_probe = true,
-	.pc_r = 1.0, .pc_slope = 1.0, .pc_slope_limit = 64, .pc_slope_min = 0, .pc_end = {0.0}, .pc_dev_d0 = 0, .pc_dev_k = 0.0, .pc_dev_fmin = 1.0, .pc_dev_root = true, .pc_mob = {{0.0}}, .pc_gate = true,
+	.pc_r = 1.0, .pc_slope = 1.3, .pc_slope_limit = 12, .pc_slope_min = 0, .pc_end = {0.0}, .pc_dev_d0 = 0, .pc_dev_k = 0.0, .pc_dev_fmin = 1.0, .pc_dev_root = true, .pc_mob = {{0.0}}, .pc_gate = true, // (pc-slope 1.3,12: G2, the default of Heath since 11/24)
 	.corr = false, .corr_end = true,
 	.lmr = 0,
 	.lazy = LAZY_AUTO, .lazy_min = 16, // (lazy auto: the default of Heath)
@@ -148,7 +148,8 @@ void options_usage(void)
 		"  -split-probe <on/off>         split the searches of probcut between threads (on).\n"
 		"  -pc-r <x>                     probcut: factor of the margins (1).\n"
 		"  -pc-end <x|e:x,...>           probcut: factor of the searches to the end, by empties.\n"
-		"  -pc-slope <a[,limit[,min]]>   probcut: slope of the searches to the end against their probes (1).\n"
+		"  -pc-slope <a[,limit[,min]]>   probcut: slope of the searches to the end against their probes (1.3,12;\n"
+		"                                with a slope, an unset pc-end is 0.85; 1: none, as up to heath.20).\n"
 		"  -pc-dev <d0,k,fmin>           probcut: narrower off the principal variation.\n"
 		"  -pc-dev-root <on/off>         probcut: the later moves of the root are off the principal variation (on).\n"
 		"  -pc-mob <a,b,c[,...]>         probcut: factor of the mobility, one set or three (by empties).\n"
@@ -704,6 +705,13 @@ void options_bound(void)
 
 	max_threads = MIN(get_cpu_number(), MAX_THREADS);
 	BOUND(options.n_task, 1, max_threads, "n-tasks");
+
+	// G2 (11/24): measured with -pc-slope 1.3,12 -pc-end 0.85 together; with a slope, an unset pc-end is 0.85
+	if (options.pc_slope > 1.0) {
+		bool set = false;
+		for (int e = 0; e <= 60; ++e) if (options.pc_end[e] > 0.0) set = true;
+		if (!set) for (int e = 0; e <= 60; ++e) options.pc_end[e] = 0.85;
+	}
 
 	if (options.hash_table_auto) options.hash_table_size = hash_table_size_auto(options.n_task);
 	if (sizeof (void*) == 4) {
