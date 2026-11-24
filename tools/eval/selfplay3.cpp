@@ -47,7 +47,6 @@ int main(int argc, char **argv)
 
 	options.n_task = 1;
 	options.hash_table_size = hash_bits;
-	options.probcut_model = 1;
 	options.verbosity = 0;
 	options.eval_file = (char *) eval_file;
 	bit_init();

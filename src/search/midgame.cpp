@@ -577,7 +577,7 @@ static void probcut_count_dev(const Search *search, const int depth, const int p
 {
 	const int d = MIN(15, search->pv_dev[search->height]);
 	const double ft = probcut_factor(search, depth, n_moves, false) * t;
-	const double sigma = options.probcut_model ? probcut_sigma(search->eval.n_empties, depth, probcut_depth) : eval_sigma(search->eval.n_empties, depth, probcut_depth);
+	const double sigma = probcut_sigma(search->eval.n_empties, depth, probcut_depth);
 	const int without = ft * sigma + RCD;
 	++statistics.n_probcut_dev_try[d];
 	if (without != probcut_error) ++statistics.n_probcut_dev_changed[d];
@@ -611,7 +611,7 @@ static bool search_probcut(Search *search, const int alpha, const int depth, con
 		int eval_score, eval_beta, eval_alpha;
 		int score;
 		const int beta = alpha + 1;
-		const double t = options.probcut_model ? probcut_refit_t[search->selectivity] : selectivity_table[search->selectivity].t;
+		const double t = probcut_refit_t[search->selectivity]; // refit (fixed since v4.5.5-heath.20)
 		const int saved_selectivity = search->selectivity;
 		const NodeType node_type = search->node_type[search->height];
 
@@ -623,8 +623,7 @@ static bool search_probcut(Search *search, const int alpha, const int depth, con
 		assert(probcut_depth > 1 && probcut_depth <= depth - 2 && (probcut_depth & 1) == (depth & 1));
 		const bool sloped = options.pc_slope > 1.0 && depth >= search->eval.n_empties && search->eval.n_empties >= options.pc_slope_min;
 		const double ft = probcut_factor(search, depth, n_moves, true) * t; // (search-b: t with the default options)
-		if (options.probcut_model) probcut_error = ft * probcut_sigma(search->eval.n_empties, depth, probcut_depth) + RCD;	// refit (experimental)
-		else probcut_error = ft * eval_sigma(search->eval.n_empties, depth, probcut_depth) + RCD;
+		probcut_error = ft * probcut_sigma(search->eval.n_empties, depth, probcut_depth) + RCD;	// refit
 		PROBCUT_STATS(probcut_count_dev(search, depth, probcut_depth, n_moves, t, probcut_error);)
 
 		// compute evaluation error (i.e. error at depth 0) averaged for both depths

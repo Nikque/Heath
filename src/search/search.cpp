@@ -111,7 +111,7 @@ const Selectivity selectivity_table [] = {
 	{999, 5,100}, // no selectivity
 };
 
-/** t values of selectivity_table scaled by 1.3, used with probcut_sigma() (probcut-model = refit, see eval.c) */
+/** t values of selectivity_table scaled by 1.3, used with probcut_sigma() (the probcut model refit, see eval.c) */
 const double probcut_refit_t[] = { 1.43, 1.95, 2.6, 3.38, 4.29, 999 };
 
 /** threshold values to try stability cutoff during NWS search */

@@ -76,7 +76,6 @@ Options options = {
 	.book_expand_tasks = 1, // book positions expanded at the same time
 	.speed_set = false, // speed given by the user (else measured)
 	.level_set = false, // level given by the user (else no level cap with a time control)
-	.probcut_model = 1, // probcut model: refit (v4.5.5-newedax.13: the model of the measures of the 64 and the 48 slots)
 	// v4.5.5-heath.20: the time of Edax a move, stretched after a fail low (T6), the sort with the evaluation from
 	// the depth 7 (sort), the probcut narrower off the principal variation (D1), by the mobility (M2) and with a slope
 	// to the end (G2): fixed, with no option (the matches of runs/b1, Z-small: +0.19 disc a game against G2 alone)
@@ -133,7 +132,6 @@ void options_usage(void)
 		"  -speed <n|auto>               search speed (nodes/s) used to share the time; auto: measured.\n"
 		"  -ponder <on/off>              search during opponent time.\n"
 		"  -keep-hash <on/off>           keep the hash tables when a new board continues the game.\n"
-		"  -probcut-model <refit|standard> probcut error model (default: refit, see README).\n"
 		"  -time-ext-max <x>             longest stretch of the time of a move (2.0).\n"
 		"  -time-ext-h <x>               part of the next iteration that must fit in the time left to start it (0.5).\n"
 		"  -time-stop-master <on/off>    split searches obey the extended time of the master (on).\n"
@@ -399,7 +397,6 @@ int options_read(const char *option, const char *value)
 		else if (string_is(option, "ggs-open")) option_boolean(option, value, &options.ggs_open);
 
 		else if (string_is(option, "probcut-d")) parse_real(value, &options.probcut_d);
-		else if (string_is(option, "probcut-model")) option_choice(option, value, "standard", "refit", &options.probcut_model);
 
 		// search-b (2026-11-22)
 		else if (string_is(option, "time-ext-max")) parse_real(value, &options.time_ext_max);
@@ -491,7 +488,7 @@ static char* settings_trim(char *s)
  *  - "name = value", "name=value", "name value" and "set name value" are the same;
  *  - tabs, full-width spaces and a full-width equal sign are accepted, and a UTF-8 BOM is skipped;
  *  - names ignore the case, and spaces, '_' and '-' are the same ("book depth" = "book_depth" = "book-depth");
- *  - the values on/off/true/false/yes/no/auto/standard/refit ignore the case;
+ *  - the values on/off/true/false/yes/no/auto ignore the case;
  *  - with '=', the value is the rest of the line (a file name may contain spaces);
  *  - '#' starts a comment; an empty line is ignored; an unknown name is reported.
  *
@@ -501,7 +498,7 @@ static char* settings_trim(char *s)
  */
 static void settings_parse_line(char *line, const char *file, int n_line)
 {
-	static const char *words[] = { "auto", "on", "off", "true", "false", "yes", "no", "standard", "refit", NULL };
+	static const char *words[] = { "auto", "on", "off", "true", "false", "yes", "no", NULL };
 	char *s = line, *key, *value, *eq, *p, *q;
 	int i, j;
 

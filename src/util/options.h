@@ -97,7 +97,6 @@ typedef struct {
 	int book_expand_tasks;                /**< book positions expanded at the same time (each search uses n_task / book_expand_tasks threads); 0 = auto */
 	bool speed_set;                       /**< speed given by the user; otherwise the time management uses the measured search speed */
 	bool level_set;                       /**< level given by the user (with a time control, it caps the search level) */
-	int probcut_model;                    /**< probcut error model: 0 = standard, 1 = refit (the default, see eval.c) */
 	/* search options of 2026-11-22 (search-b): every default keeps the search of v4.5.5-heath.19, node for node, but
 	 * time_stop_master (a correction: only searches of several threads on a clock change) */
 	int time_ext;                         /**< game time: 1 = the time of each move from the clock, may stretch up to time_ext_max x, decides before a new iteration */
