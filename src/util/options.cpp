@@ -77,12 +77,15 @@ Options options = {
 	.speed_set = false, // speed given by the user (else measured)
 	.level_set = false, // level given by the user (else no level cap with a time control)
 	.probcut_model = 1, // probcut model: refit (v4.5.5-newedax.13: the model of the measures of the 64 and the 48 slots)
-	// search-b (2026-11-22): off, the search of v4.5.5-heath.19, but for lazy
-	.time_ext = 0, .time_ext_max = 2.0, .time_ext_h = 0.5,
+	// v4.5.5-heath.20: the time of Edax a move, stretched after a fail low (T6), the sort with the evaluation from
+	// the depth 7 (sort), the probcut narrower off the principal variation (D1), by the mobility (M2) and with a slope
+	// to the end (G2): fixed, with no option (the matches of runs/b1, Z-small: +0.19 disc a game against G2 alone)
+	.time_ext = 1, .time_ext_max = 2.0, .time_ext_h = 0.5,
 	.time_stop_master = true, // (a fault of heath.19 and before: see search_check_timeout)
-	.sort_eval_shift = {2, 1, 0}, .sort_min_depth = 0,
+	.sort_eval_shift = {1, 0, 0}, .sort_min_depth = 7,
 	.split_probe = true,
-	.pc_r = 1.0, .pc_slope = 1.3, .pc_slope_limit = 12, .pc_slope_min = 0, .pc_end = {0.0}, .pc_dev_d0 = 0, .pc_dev_k = 0.0, .pc_dev_fmin = 1.0, .pc_dev_root = true, .pc_mob = {{0.0}}, .pc_gate = true, // (pc-slope 1.3,12: G2, the default of Heath since 11/24)
+	.pc_r = 1.0, .pc_slope = 1.3, .pc_slope_limit = 12, .pc_slope_min = 0, .pc_end = {0.0}, .pc_dev_d0 = 2, .pc_dev_k = 0.04, .pc_dev_fmin = 0.75, .pc_dev_root = true,
+	.pc_mob = {{2.219, -0.184, -0.350}}, .pc_gate = true,
 	.lmr = 0,
 	.lazy = LAZY_AUTO, .lazy_min = 16, // (lazy auto: the default of Heath)
 	.book_depth = 0, // book depth: auto (the depth of the loaded book)
@@ -131,20 +134,13 @@ void options_usage(void)
 		"  -ponder <on/off>              search during opponent time.\n"
 		"  -keep-hash <on/off>           keep the hash tables when a new board continues the game.\n"
 		"  -probcut-model <refit|standard> probcut error model (default: refit, see README).\n"
-		"  -time-ext <0|1>               game time: the time of Edax a move, stretched after a fail low.\n"
 		"  -time-ext-max <x>             longest stretch of the time of a move (2.0).\n"
 		"  -time-ext-h <x>               part of the next iteration that must fit in the time left to start it (0.5).\n"
 		"  -time-stop-master <on/off>    split searches obey the extended time of the master (on).\n"
-		"  -sort-eval-shift <a,b,c>      move sorting: weight shifts of the evaluation (2,1,0).\n"
-		"  -sort-min-depth <n>           move sorting: lowest depth with an evaluation (0: the table).\n"
 		"  -split-probe <on/off>         split the searches of probcut between threads (on).\n"
 		"  -pc-r <x>                     probcut: factor of the margins (1).\n"
-		"  -pc-end <x|e:x,...>           probcut: factor of the searches to the end, by empties.\n"
-		"  -pc-slope <a[,limit[,min]]>   probcut: slope of the searches to the end against their probes (1.3,12;\n"
-		"                                with a slope, an unset pc-end is 0.85; 1: none, as up to heath.20).\n"
-		"  -pc-dev <d0,k,fmin>           probcut: narrower off the principal variation.\n"
+		"  -pc-end <x|e:x,...>           probcut: factor of the searches to the end, by empties (0.85).\n"
 		"  -pc-dev-root <on/off>         probcut: the later moves of the root are off the principal variation (on).\n"
-		"  -pc-mob <a,b,c[,...]>         probcut: factor of the mobility, one set or three (by empties).\n"
 		"  -pc-gate <on/off>             probcut: shallow searches chosen by the evaluation (on).\n"
 		"  -lmr <0|1|2>                  late move reductions (0: off).\n"
 		"  -lazy <n|auto>                helper threads at the root (0: off); auto (default): 1 in the\n"
@@ -291,32 +287,6 @@ static void option_choice(const char *option, const char *value, const char *wor
  * @return The number of arguments read (0, 1 or 2).
  */
 /**
- * @brief Read pc-slope: slope[,limit[,fewest empties]] (slope 1 to 2, limit 1 to 64, empties 0 to 60).
- */
-static void option_pc_slope(const char *option, const char *value)
-{
-	double a = 1.0;
-	int limit = 64, low = 0, used = 0;
-	bool ok = value && sscanf(value, "%lf%n", &a, &used) == 1;
-	const char *p = ok ? value + used : "";
-	if (ok && *p == ',') {
-		ok = sscanf(p, ",%d%n", &limit, &used) == 1;
-		if (ok) p += used;
-		if (ok && *p == ',') {
-			ok = sscanf(p, ",%d%n", &low, &used) == 1;
-			if (ok) p += used;
-		}
-	}
-	if (!ok || *p || !(a >= 1.0 && a <= 2.0) || limit < 1 || limit > 64 || low < 0 || low > 60) {
-		warn("option %s needs slope[,limit[,empties]] (slope 1 to 2, limit 1 to 64, empties 0 to 60); ignored\n", option);
-		return;
-	}
-	options.pc_slope = a;
-	options.pc_slope_limit = limit;
-	options.pc_slope_min = low;
-}
-
-/**
  * @brief Read the factors of pc-end: one factor for all the empties, or empties:factor,... (increasing empties;
  * straight lines between them, the first and the last factor beyond them).
  */
@@ -432,34 +402,14 @@ int options_read(const char *option, const char *value)
 		else if (string_is(option, "probcut-model")) option_choice(option, value, "standard", "refit", &options.probcut_model);
 
 		// search-b (2026-11-22)
-		else if (string_is(option, "time-ext")) options.time_ext = option_int(option, value, options.time_ext);
 		else if (string_is(option, "time-ext-max")) parse_real(value, &options.time_ext_max);
 		else if (string_is(option, "time-ext-h")) parse_real(value, &options.time_ext_h);
 		else if (string_is(option, "time-stop-master")) option_boolean(option, value, &options.time_stop_master);
-		else if (string_is(option, "sort-eval-shift")) {
-			int s[3];
-			if (value && sscanf(value, "%d,%d,%d", s, s + 1, s + 2) == 3) for (int i = 0; i < 3; ++i) options.sort_eval_shift[i] = s[i];
-			else warn("option %s needs three numbers a,b,c\n", option);
-		}
-		else if (string_is(option, "sort-min-depth")) options.sort_min_depth = option_int(option, value, options.sort_min_depth);
 		else if (string_is(option, "split-probe")) option_boolean(option, value, &options.split_probe);
 		else if (string_is(option, "pc-r")) parse_real(value, &options.pc_r);
-		else if (string_is(option, "pc-slope")) option_pc_slope(option, value);
 		else if (string_is(option, "pc-end")) option_pc_end(option, value, options.pc_end);
 		else if (string_is(option, "pc-gate")) option_boolean(option, value, &options.pc_gate);
-		else if (string_is(option, "pc-dev")) {
-			int d0; double k, fmin;
-			if (value && sscanf(value, "%d,%lf,%lf", &d0, &k, &fmin) == 3) { options.pc_dev_d0 = d0; options.pc_dev_k = k; options.pc_dev_fmin = fmin; }
-			else warn("option %s needs d0,k,fmin\n", option);
-		}
 		else if (string_is(option, "pc-dev-root")) option_boolean(option, value, &options.pc_dev_root);
-		else if (string_is(option, "pc-mob")) {
-			double m[9];
-			char end;
-			const int n = value ? sscanf(value, "%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf,%lf%c", m, m + 1, m + 2, m + 3, m + 4, m + 5, m + 6, m + 7, m + 8, &end) : 0;
-			if (n == 3 || n == 9) for (int i = 0; i < 9; ++i) options.pc_mob[i / 3][i % 3] = m[n == 3 ? i % 3 : i];
-			else warn("option %s needs a,b,c or three times a,b,c\n", option);
-		}
 		else if (string_is(option, "lmr")) options.lmr = option_int(option, value, options.lmr);
 		else if (string_is(option, "lazy")) options.lazy = option_int_or_auto(option, value, options.lazy, LAZY_AUTO);
 		else if (string_is(option, "lazy-min")) options.lazy_min = option_int(option, value, options.lazy_min);
@@ -688,8 +638,8 @@ void options_bound(void)
 	max_threads = MIN(get_cpu_number(), MAX_THREADS);
 	BOUND(options.n_task, 1, max_threads, "n-tasks");
 
-	// G2 (11/24): measured with -pc-slope 1.3,12 -pc-end 0.85 together; with a slope, an unset pc-end is 0.85
-	if (options.pc_slope > 1.0) {
+	// G2: measured with pc-end 0.85; an unset pc-end is 0.85
+	{
 		bool set = false;
 		for (int e = 0; e <= 60; ++e) if (options.pc_end[e] > 0.0) set = true;
 		if (!set) for (int e = 0; e <= 60; ++e) options.pc_end[e] = 0.85;
@@ -719,9 +669,6 @@ void options_bound(void)
 	BOUND(options.book_leaf_recalculate_rounds, 1, 1000000, "book-leaf-recalculate-rounds");
 
 	// search-b (2026-11-22)
-	BOUND(options.time_ext, 0, 1, "time-ext");
-	for (int i = 0; i < 3; ++i) BOUND(options.sort_eval_shift[i], -4, 30, "sort-eval-shift");
-	BOUND(options.sort_min_depth, 0, 60, "sort-min-depth");
 	BOUND(options.lmr, 0, 2, "lmr");
 	BOUND(options.lazy, LAZY_AUTO, MAX_THREADS - 1, "lazy");
 	BOUND(options.lazy_min, 8, 60, "lazy-min");
