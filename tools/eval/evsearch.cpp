@@ -517,14 +517,15 @@ static void load(int pi, int ply)
 			char name[1024];
 			evtool::xname(name, "%s/%s%02d.bin", src[d].dir, src[d].prefix, q);
 			FILE *f = fopen(name, "rb");
-			if (!f) continue;
-			const long long n = file_size(f) / (long long) sizeof (Rec);
+			if (!f) continue;	// (a source may have no file for a ply: main checks that each ply has training records)
+			const long long n = rec_count(f, name);
 			const double keep = n > src[d].max ? (double) src[d].max / n : 1.0;
 			const uint64_t thr = keep >= 1.0 ? ~0ULL : (uint64_t) (keep * 18446744073709551615.0);	// (2^64 as a double does not fit)
 			const float weight = (float) (src[d].weight * factor);
 			Rec *buf = (Rec *) xmalloc(sizeof (Rec) << 20);
 			size_t m;
-			while ((m = fread(buf, sizeof (Rec), 1 << 20, f)) > 0) {
+			long long done = 0;
+			while ((m = rec_read(buf, 1 << 20, f, name, &done)) > 0) {
 				for (size_t i = 0; i < m; ++i) {
 					const uint64_t h = mix64(buf[i].P * 0x9E3779B97F4A7C15ULL ^ buf[i].O);
 					if (h % 32 == 0) { if (j == 0 && ((mix64(h) >> 40) % 4 == 0 || n < 4000000)) push(&test[pi][d], buf + i, 1.0f); }
@@ -554,9 +555,11 @@ static EVTOOL_NOINLINE void descent(const Data *D, const unsigned int *idx, int 
 	double *q = (double *) xmalloc(nw * sizeof *q);
 	const double step = beta_sd > 0 ? beta_sd : 1.0 / (nf + 1);
 	for (int it = 0; it < iter; ++it) {
+		int team = 1;	// the threads of the team (at most nt): their buffers only are summed
 		#pragma omp parallel num_threads(nt)
 		{
 			double *lq = tq[omp_get_thread_num()];
+			if (omp_get_thread_num() == 0) team = omp_get_num_threads();
 			memset(lq, 0, nw * 8);
 			int kk;
 			#pragma omp for schedule(static)
@@ -574,7 +577,7 @@ static EVTOOL_NOINLINE void descent(const Data *D, const unsigned int *idx, int 
 		#pragma omp parallel for reduction(+:change)
 		for (i = 0; i < nw; ++i) {
 			double a = 0;
-			for (int t = 0; t < nt; ++t) a += tq[t][i];
+			for (int t = 0; t < team; ++t) a += tq[t][i];
 			q[i] = lam[i] >= 1e20 ? 0 : step * (b[i] - a - lam[i] * w[i]) / M[i];
 			change += fabs(q[i]);
 		}
@@ -617,9 +620,11 @@ static void run_config(const Config *c, int pi, double *mse)
 	double **tq = (double **) xmalloc(nt * sizeof *tq), **td = (double **) xmalloc(nt * sizeof *td);
 	for (int t = 0; t < nt; ++t) { tq[t] = (double *) xmalloc(nw * 8); td[t] = (double *) xmalloc(nw * 8); }
 	// residual & diagonal at w = 0
+	int team = 1;	// the threads of the team (at most nt): their buffers only are summed
 	#pragma omp parallel num_threads(nt)
 	{
 		double *lq = tq[omp_get_thread_num()], *ld = td[omp_get_thread_num()];
+		if (omp_get_thread_num() == 0) team = omp_get_num_threads();
 		memset(lq, 0, nw * 8); memset(ld, 0, nw * 8);
 		int kk;
 		#pragma omp for schedule(static)
@@ -632,7 +637,7 @@ static void run_config(const Config *c, int pi, double *mse)
 	}
 	int i;
 	#pragma omp parallel for
-	for (i = 0; i < nw; ++i) { double a = 0, b = 0; for (int t = 0; t < nt; ++t) { a += tq[t][i]; b += td[t][i]; } r[i] = a; cnt[i] = b; M[i] = (b > mute ? b : mute) + lam[i]; if (M[i] <= 0) M[i] = 1; if (lam[i] >= 1e20) { r[i] = 0; M[i] = 1; } }	// lam >= 1e20: frozen at the prior
+	for (i = 0; i < nw; ++i) { double a = 0, b = 0; for (int t = 0; t < team; ++t) { a += tq[t][i]; b += td[t][i]; } r[i] = a; cnt[i] = b; M[i] = (b > mute ? b : mute) + lam[i]; if (M[i] <= 0) M[i] = 1; if (lam[i] >= 1e20) { r[i] = 0; M[i] = 1; } }	// lam >= 1e20: frozen at the prior
 	double rz = 0;
 	for (i = 0; i < nw; ++i) { z[i] = r[i] / M[i]; p[i] = z[i]; rz += r[i] * z[i]; }
 	if (method_sd) descent(D, idx, nf, nw, lam, r, M, w, tq);
@@ -640,6 +645,7 @@ static void run_config(const Config *c, int pi, double *mse)
 		#pragma omp parallel num_threads(nt)
 		{
 			double *lq = tq[omp_get_thread_num()];
+			if (omp_get_thread_num() == 0) team = omp_get_num_threads();
 			memset(lq, 0, nw * 8);
 			int kk;
 			#pragma omp for schedule(static)
@@ -654,7 +660,7 @@ static void run_config(const Config *c, int pi, double *mse)
 		}
 		double pq = 0;
 		#pragma omp parallel for reduction(+:pq)
-		for (i = 0; i < nw; ++i) { double a = 0; for (int t = 0; t < nt; ++t) a += tq[t][i]; q[i] = lam[i] >= 1e20 ? 0 : a + lam[i] * p[i]; pq += p[i] * q[i]; }
+		for (i = 0; i < nw; ++i) { double a = 0; for (int t = 0; t < team; ++t) a += tq[t][i]; q[i] = lam[i] >= 1e20 ? 0 : a + lam[i] * p[i]; pq += p[i] * q[i]; }
 		if (!(pq > 0) || !(rz > 1e-30)) break;	// converged (e.g. the prior fits exactly)
 		const double step = rz / pq;
 		double rz_new = 0;
@@ -677,7 +683,7 @@ static void run_config(const Config *c, int pi, double *mse)
 		FILE *g = xfopen(name, "wb");
 		fwrite(w, 8, nw, g);
 		if (fclose(g) != 0) die("cannot write %s", name);
-		sprintf(name, "%s/%s_%02d.n", dumpdir, c->name, plies[pi]);	// the weighted number of samples of each weight
+		evtool::xname(name, "%s/%s_%02d.n", dumpdir, c->name, plies[pi]);	// the weighted number of samples of each weight
 		g = xfopen(name, "wb");
 		fwrite(cnt, 8, nw, g);
 		if (fclose(g) != 0) die("cannot write %s", name);
@@ -749,6 +755,7 @@ int main(int argc, char **argv)
 		else if (!strcmp(argv[i], "-teacher")) { et_init(); teacher = et_read(value(i)); }
 		else if (!strcmp(argv[i], "-alpha")) alpha = atof(value(i));
 		else if (!strcmp(argv[i], "-prior")) { et_init(); prior = et_read(value(i)); }
+		else die("unknown option %s", argv[i]);	// (up to v4.5.5-heath.20 it was ignored: the training ran without it)
 	}
 #ifdef _MSC_VER
 	if (argc < 0) { hot_pad_a(&argc); hot_pad_b(&argc); hot_pad_c(&argc); }
@@ -758,7 +765,17 @@ int main(int argc, char **argv)
 	read_lib(libf);
 	if (conff == nullptr) die("missing -configs");
 	FILE *f = xfopen(conff, "r");
-	for (int pi = 0; pi < n_plies; ++pi) { load(pi, plies[pi]); apply_teacher(train + pi); teacher_test(pi); if (base_cfg[0]) apply_base(pi, plies[pi]); }
+	if (n_plies == 0) die("missing -plies");
+	if (n_src == 0) die("missing -src");
+	for (int pi = 0; pi < n_plies; ++pi) {
+		load(pi, plies[pi]);
+		int n_test = 0;
+		for (int d = 0; d < n_src; ++d) n_test += test[pi][d].n;
+		// no training record (no file of the sources for the ply, or empty files): nothing is trained nor written
+		if (train[pi].n == 0) { fprintf(stderr, "no training record for ply %d (files <dir>/<prefix>%02d.bin of the -src)\n", plies[pi], plies[pi]); return 1; }
+		fprintf(stderr, "ply %d: %d training records, %d test records\n", plies[pi], train[pi].n, n_test);
+		apply_teacher(train + pi); teacher_test(pi); if (base_cfg[0]) apply_base(pi, plies[pi]);
+	}
 	fprintf(stderr, "%d patterns; data loaded\n", n_lib);
 	char line[4096], copy[4096];
 	while (fgets(line, sizeof line, f)) {

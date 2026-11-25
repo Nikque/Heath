@@ -122,7 +122,7 @@ The libraries in `bin/` of the package:
 Steps:
 
 1. Place the library and `data/eval.dat` (required) in your program's folder. Add `data/book.dat` and `config.ini` if needed.
-2. From C or C++, include `src/libedax.h` from the source. From another language, load the library through that language's foreign function interface (for Dart there is a package named libedax4dart).
+2. From C or C++, include `src/api/libedax.h` from the source. From another language, load the library through that language's foreign function interface (for Dart there is a package named libedax4dart).
 3. Call `libedax_initialize` first (the settings are read there), start a game with `edax_init`, and call `libedax_terminate` at the end.
 4. The functions correspond to Edax commands (`edax_play`, `edax_go`, `edax_hint`, `edax_book_deviate`, …).
 
@@ -169,7 +169,7 @@ Notes:
 
 ### Details (differences from the original libedax, added functions, building)
 
-**Compatibility.** The functions, and the layout of the data exchanged with the caller, are those of the original libedax (`src/libedax.h`). Edax's internal structures changed in 4.5, so they are not passed directly: the data are copied into structures with the original layout.
+**Compatibility.** The functions, and the layout of the data exchanged with the caller, are those of the original libedax (`src/api/libedax.h`). Edax's internal structures changed in 4.5, so they are not passed directly: the data are copied into structures with the original layout.
 
 **Added functions**
 

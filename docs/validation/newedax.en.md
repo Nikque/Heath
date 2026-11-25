@@ -9,7 +9,7 @@ For what changed, see the [release notes](../../RELEASE-NOTES.md). "Above" and "
 - This version with no option and the engine of the matches with the five options (`-time-ext 1 -sort-eval-shift 1,0,0 -sort-min-depth 7 -pc-dev 2,0.04,0.75 -pc-mob 2.219,-0.184,-0.350,0,0,0,0,0,0 -pc-slope 1.3,12 -pc-end 0.85`) were compared with one thread. The scores, the nodes and the principal variations were the same, position by position.
   - 20 positions of the midgame (level 16): 15,399,727 nodes.
   - 25 positions of 26 empties (level 21): 1,747,334,603 nodes. The version before, without the five options, searched 2,121,150,718.
-- The games: one thread (4 for lazy), no book, two games a position filled at random, one with each color. The judgement is the z of the discs a game: with z +1.0 or more, as many games are added; taken if the added games are plus and both together have z +1.96 or more.
+- The games: one thread (4 for lazy), no book, two games a position filled at random, one with each color. They were played with the engine of the matches (the five changes given as options), not with the release programs; the first item shows that both search the same. The time a game is that of each side. The discs a game and the z come from the disc differences, the Elo from the results. The judgement is the z of the discs a game: with z +1.0 or more, as many games are added; taken if the added games are plus and both together have z +1.96 or more.
 
 | Comparison | Time a game | Set | Games | Discs a game | z | Elo |
 |---|---|---|---|---|---|---|

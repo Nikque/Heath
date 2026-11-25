@@ -4,6 +4,10 @@
 The includes of the moved files become paths from src/ ("core/board.h"); the build files get src/ as an
 include directory. Run from the repository root, on a clean working tree: the moves are done with git mv.
 
+It applies only to the flat src/ of the C++ port before stage 2 (every source file directly in src/, as before
+the commit "Stage 2: src in module directories"). On another tree (the current one, already in module
+directories) it lists what it does not find, changes nothing and ends with the exit code 2.
+
 usage: restructure_src.py [--dry-run]
 """
 
@@ -34,13 +38,25 @@ SRC = Path('src')
 
 
 def plan():
+    """file -> module directory; None (said) when src/ is not the flat src/ of the port before stage 2"""
+    if not SRC.is_dir():
+        print(f'no {SRC} folder: run from the repository root')
+        return None
     names = sorted(p.name for p in SRC.iterdir() if p.is_file() and p.suffix in ('.h', '.cpp'))
+    moved = sorted(d for d in MODULES if (SRC / d).is_dir())
+    missing = sorted(f for files in MODULES.values() if files for f in files if f not in names)
+    if moved or missing:
+        print('src/ is not the flat src/ of the port before stage 2: nothing is changed')
+        if moved:
+            print(f'  module directories already there: {", ".join(moved)}')
+        if missing:
+            print(f'  {len(missing)} files not directly in src/ (e.g. {", ".join(missing[:5])})')
+        return None
     where = {}
     for d, files in MODULES.items():
         if files is None:
             continue
         for f in files:
-            assert f in names, f
             where[f] = d
     for f in names:
         if f in where or f == 'all.cpp':
@@ -48,7 +64,9 @@ def plan():
         if f.startswith(('flip_', 'count_flip', 'count_last_flip_', 'generate_')):
             where[f] = 'core/flip'
     left = [f for f in names if f not in where and f != 'all.cpp']
-    assert not left, left
+    if left:
+        print(f'files of src/ without a module directory: {", ".join(left)}; nothing is changed')
+        return None
     return where
 
 
@@ -62,6 +80,8 @@ def rewrite(text, where):
 def main(argv):
     dry = '--dry-run' in argv
     where = plan()
+    if where is None:
+        return 2
     for f, d in sorted(where.items(), key=lambda x: (x[1], x[0])):
         print(f'{d}/{f}')
     if dry:

@@ -61,15 +61,16 @@ static void load_ply(int q, double c, Set *train, Set *test)
 		char name[1024];
 		evtool::xname(name, "%s/%s%02d.bin", src[d].dir, src[d].prefix, q);
 		FILE *f = fopen(name, "rb");
-		if (!f) continue;
-		const long long n = file_size(f) / (long long) sizeof (Rec);
+		if (!f) continue;	// (a source may have no file for a ply: main checks that each trained ply has training records)
+		const long long n = rec_count(f, name);
 		// keep 1 in 'keep' training samples to respect the maximum (deterministic by hash)
 		const double keep = n > src[d].max ? (double) src[d].max / n : 1.0;
 		const uint64_t thr = keep >= 1.0 ? ~0ULL : (uint64_t) (keep * 18446744073709551615.0);	// (2^64 as a double does not fit)
 		const float w = (float) (c * src[d].weight);
 		Rec *buf = (Rec *) xmalloc(sizeof (Rec) << 20);
 		size_t m;
-		while ((m = fread(buf, sizeof (Rec), 1 << 20, f)) > 0) {
+		long long done = 0;
+		while ((m = rec_read(buf, 1 << 20, f, name, &done)) > 0) {
 			for (size_t i = 0; i < m; ++i) {
 				const uint64_t h = mix64(buf[i].P * 0x9E3779B97F4A7C15ULL ^ buf[i].O);
 				if (h % test_mod == 0) { if (test && (n < 4000000 || (mix64(h) >> 40) % 4 == 0)) set_push(test + d, buf + i, 1.0f); }
@@ -112,13 +113,15 @@ static void reduce(double *out, double **t, int nt)
 	}
 }
 
-// q = X^T C X p   (accumulated in per-thread buffers)
+// q = X^T C X p   (accumulated in per-thread buffers; the buffers of the threads of the team only, at most nt, are summed)
 static void apply_A(const Set *s, const double *p, double *q, double **tq, int nt)
 {
+	int team = 1;
 	#pragma omp parallel num_threads(nt)
 	{
 		double *lq = tq[omp_get_thread_num()];
 		int k;
+		if (omp_get_thread_num() == 0) team = omp_get_num_threads();
 		memset(lq, 0, ET_NW * sizeof *lq);
 		#pragma omp for schedule(static)
 		for (k = 0; k < s->n; ++k) {
@@ -130,16 +133,18 @@ static void apply_A(const Set *s, const double *p, double *q, double **tq, int n
 			lq[ET_NW - 1] += t;
 		}
 	}
-	reduce(q, tq, nt);
+	reduce(q, tq, team);
 }
 
-// g = X^T C (y - X w), diag = X^T C 1 (count of each weight)
+// g = X^T C (y - X w), diag = X^T C 1 (count of each weight; the buffers of the threads of the team only are summed)
 static void residual(const Set *s, const double *w, double *g, double *diag, double **tq, double **td, int nt)
 {
+	int team = 1;
 	#pragma omp parallel num_threads(nt)
 	{
 		double *lq = tq[omp_get_thread_num()], *ld = td[omp_get_thread_num()];
 		int k;
+		if (omp_get_thread_num() == 0) team = omp_get_num_threads();
 		memset(lq, 0, ET_NW * sizeof *lq);
 		memset(ld, 0, ET_NW * sizeof *ld);
 		#pragma omp for schedule(static)
@@ -152,8 +157,8 @@ static void residual(const Set *s, const double *w, double *g, double *diag, dou
 			lq[ET_NW - 1] += t; ld[ET_NW - 1] += s->c[k];
 		}
 	}
-	reduce(g, tq, nt);
-	reduce(diag, td, nt);
+	reduce(g, tq, team);
+	reduce(diag, td, team);
 }
 
 int main(int argc, char **argv)
@@ -208,6 +213,8 @@ int main(int argc, char **argv)
 			if (q_ < 0 || q_ > 60) continue;
 			load_ply(q_, pow(decay, abs(d)), &train, d == 0 ? test : nullptr);
 		}
+		// no training record for a trained ply (no file of the sources, or empty files): nothing is written (out is kept)
+		if (!only_eval && train.n == 0) { fprintf(stderr, "no training record for ply %d (files <dir>/<prefix>NN.bin of the -src, plies %d to %d)\n", ply, ply - window, ply + window); return 1; }
 		double pm[8], pa[8], pb[8], nm[8], na[8], nb[8];
 		for (int i = 0; i < ET_NW; ++i) w[i] = w0[i] = e->w[ply][i] / 128.0;
 		for (int d = 0; d < n_src; ++d) if (test[d].n) errors(test + d, w0, pm + d, pa + d, pb + d);

@@ -115,7 +115,7 @@ static bool get_helper(Node *master, Node *node, Move *move)
 	bool found = false;
 
 	if (master) {
-		if (master->is_waiting && !master->is_helping) {
+		if (ybwc_load(&master->is_waiting) && !ybwc_load(&master->is_helping)) { // (tested again under the lock)
 			lock(master);
 			if (master->n_slave && master->is_waiting && !master->is_helping) {
 				master->is_helping = true;
@@ -171,9 +171,9 @@ bool node_split(Node *node, Move *move)
 
 	if (search->allow_node_splitting // split only if parallelism is on
 	 && node->depth >= SPLIT_MIN_DEPTH // split if we are deep enough
-	 && node->n_moves_done // do not split first move (ybwc main principle).
-	 && node->n_slave < SPLIT_MAX_SLAVES // do not split too much at the same point.
-	 && node->n_moves_todo >=  SPLIT_MIN_MOVES_TODO  // do not split the last move(s), to diminish waiting time
+	 && ybwc_load(&node->n_moves_done) // do not split first move (ybwc main principle).
+	 && ybwc_load(&node->n_slave) < SPLIT_MAX_SLAVES // do not split too much at the same point.
+	 && ybwc_load(&node->n_moves_todo) >=  SPLIT_MIN_MOVES_TODO  // do not split the last move(s), to diminish waiting time
 	 && (options.split_probe || search->probcut_level == 0)) {  // (search-b: split-probe off, no split inside probcut searches)
 		YBWC_STATS(atomic_add(&statistics.n_split_try, 1);)
 
@@ -229,7 +229,7 @@ void node_wait_slaves(Node* node)
 		node->is_waiting = true;
 		assert(node->is_helping == false);
 		unlock(node);
-		for (i = 0; i < WAIT_SPIN_COUNT && node->n_slave && !node->is_helping; ++i) cpu_pause();
+		for (i = 0; i < WAIT_SPIN_COUNT && ybwc_load(&node->n_slave) && !ybwc_load(&node->is_helping); ++i) cpu_pause(); // (tested again under the lock)
 		lock(node);
 		if (node->n_slave && !node->is_helping) condition_wait(node);
 
@@ -285,7 +285,7 @@ void node_update(Node* node, Move *move)
 			record_best_move(search, move, node->alpha, node->beta, node->depth);
 			search->result->n_moves_left--;
 		}
-		if (score > node->alpha) node->alpha = score;
+		if (score > node->alpha) ybwc_store(&node->alpha, score);
 	}
 	if (node->alpha >= node->beta  && node->n_slave) { // stop slave ?
 		for (i = 0; i < node->n_slave; ++i) {
@@ -421,7 +421,7 @@ void task_search(Task *task)
 			}
 			search->parent->child_nodes += search_count_nodes(search);
 		spin_unlock(search->parent);
-		task->run = false;
+		ybwc_store_release(&task->run, false); // (lazy_stop() waits for it, without a lock)
 		return;
 	}
 
@@ -452,7 +452,7 @@ void task_search(Task *task)
 	YBWC_STATS(++task->n_calls;)
 
 	while (move && !search->stop) {
-		const int alpha = node->alpha;
+		const int alpha = ybwc_load(&node->alpha); // (read without the lock: a smaller alpha than the last one is only a wider window)
 		if (alpha >= node->beta) break;
 
 		board0 = search->board;
@@ -486,7 +486,7 @@ void task_search(Task *task)
 				if (search->options.verbosity == 4) pv_debug(search, move, stdout);
 			}
 			if (node->bestscore > node->alpha) {
-				node->alpha = node->bestscore;
+				ybwc_store(&node->alpha, node->bestscore);
 				if (node->alpha >= node->beta && node->search->stop == RUNNING) { // stop the master thread?
 					spin_lock(node->search); // (see node_wait_slaves)
 					if (node->search->stop == RUNNING) {
@@ -553,7 +553,7 @@ void* task_loop(void *param)
 	while (task->loop) {
 		if (!task->run) { // a sleeping task wakes up late: with small tasks, half of the logical CPUs were idle at 32 threads
 			unlock(task);
-			for (int i = 0; i < WAIT_SPIN_COUNT && !task->run && task->loop; ++i) cpu_pause();
+			for (int i = 0; i < WAIT_SPIN_COUNT && !ybwc_load(&task->run) && ybwc_load(&task->loop); ++i) cpu_pause(); // (tested again under the lock)
 			lock(task);
 		}
 		if (!task->run && task->loop) {
@@ -690,7 +690,19 @@ void task_stack_init(TaskStack *stack, const int n)
 
 		// init the tasks.
 		for (i = 0; i < stack->n; ++i) {
-			if (i) {
+			if (i == 0) { // the task of the search that owns the stack: search_init() or search_set_task_number() binds it
+				Task *task = stack->task;
+				task->loop = false;
+				task->run = false;
+				task->is_helping = false;
+				task->search = NULL;
+				task->node = NULL;
+				task->move = NULL;
+				task->lazy_depth = 0;
+				task->lazy_sel = -1;
+				task->n_calls = 0;
+				task->n_nodes = 0;
+			} else {
 				task_init(stack->task + i);
 				stack->task[i].loop = true;
 				if (!thread_create(&stack->task[i].thread, task_loop, stack->task + i)) {

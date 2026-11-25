@@ -131,7 +131,7 @@ wEdax-x86-64.exe -l 12 -n 4 -book-file data/my.dat
 | `book-expand-tasks` | `auto` | 1 | book を自動で広げるコマンドが、同時に広げる局面の数。[7 章](07-book-learning.md)・[9 章](09-large-books.md) |
 | `book-leaf-recalculate-rounds` | `1` | 1 | `book leaf recalculate` 系を繰り返す回数の上限。[8 章](08-book-maintenance.md) |
 | `book-store-tasks` | `auto` | `auto` | 棋譜から book を育てるコマンドが、同時に学習する棋譜の数。[7 章](07-book-learning.md)・[9 章](09-large-books.md) |
-| `lazy` | `auto` | `auto` | 補助の探索の数（v4.5.5-heath.20 から `auto`）。`auto` は、4 スレッド以上の中盤の探索に補助 1 つ。終盤の読み切り、最後まで読む選択的な読み、3 スレッド以下の探索では使いません。`0` は使いません。補助を使うと、評価値と、できる book が変わることがあります |
+| `lazy` | `auto` | `auto` | 補助の探索の数（v4.5.5-heath.20 から `auto`）。`auto` は、4 スレッド以上の中盤の探索に補助 1 つ。3 スレッド以下の探索、時間の制限がないかその手の時間で解き切れる終盤の読み切りと最後まで読む選択的な読み、終盤の深さでの選択性の反復、一部の手だけの探索（`hint`・解析）、`lazy-min` より浅い反復では使いません。`0` は使いません。補助を使うと、評価値と、できる book が変わることがあります |
 
 **`config.ini` の `level` についての注意**：`config.ini`（と `edax.ini`）に書いた `level` は、起動したときの level を決めるだけです。
 

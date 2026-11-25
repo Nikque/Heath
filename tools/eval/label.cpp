@@ -9,6 +9,8 @@
 #include "all.cpp"
 #undef main
 #include <omp.h>
+#include <atomic>
+#include <cerrno>
 
 #include "evtool.hpp"
 
@@ -48,7 +50,10 @@ int main(int argc, char **argv)
 {
 	if (argc < 5) evtool::die("usage: label <in.raw> <out.bin> <n> <threads> [-seed s] [-level L] [-eval file]");
 	const char *in = argv[1], *outname = argv[2];
-	long long n_want = atoll(argv[3]);
+	char *end;
+	errno = 0;
+	long long n_want = strtoll(argv[3], &end, 10);
+	if (end == argv[3] || *end != '\0' || errno == ERANGE || n_want < 1) evtool::die("bad n %s (1 or more records to label)", argv[3]);
 	const int nt = atoi(argv[4]);
 	unsigned long long seed = 1;
 	const char *eval_file = "eval_orig.dat";
@@ -57,6 +62,7 @@ int main(int argc, char **argv)
 		if (!strcmp(argv[i], "-seed")) seed = strtoull(value(i), nullptr, 10);
 		else if (!strcmp(argv[i], "-level")) level = atoi(value(i));
 		else if (!strcmp(argv[i], "-eval")) eval_file = value(i);
+		else evtool::die("unknown option %s", argv[i]);
 	}
 	if (nt < 1) evtool::die("bad threads %s", argv[4]);
 
@@ -71,9 +77,12 @@ int main(int argc, char **argv)
 	search_global_init();
 
 	FILE *f = evtool::xfopen(in, "rb");
-	long long n = evtool::file_size(f) / (long long) sizeof (Rec);
-	Rec *R = (Rec *) evtool::xmalloc(n * sizeof *R);
-	n = (long long) fread(R, sizeof *R, n, f);
+	long long n = evtool::rec_count(f, in);
+	if ((unsigned long long) n > SIZE_MAX / sizeof (Rec)) evtool::die("%s holds too many records", in);
+	Rec *R = (Rec *) evtool::xmalloc((size_t) n * sizeof *R);
+	long long n_read = 0;
+	while (n_read < n && evtool::rec_read(R + n_read, (size_t) (n - n_read), f, in, &n_read) > 0) {}
+	if (n_read != n) evtool::die("cannot read %s (the file changed)", in);
 	fclose(f);
 	FILE *g = evtool::xfopen(outname, "wb");
 	for (long long i = 0; i < n; ++i) R[i].v = 0;
@@ -88,7 +97,7 @@ int main(int argc, char **argv)
 	fprintf(stderr, "%s: %lld records, %lld unique, labelling %lld\n", in, n, u, n_want);
 
 	const double t0 = omp_get_wtime();
-	long long done = 0;
+	std::atomic<long long> done{0};	// the records labelled (read by thread 0 for the progress)
 	#pragma omp parallel num_threads(nt)
 	{
 		Search search;
@@ -99,14 +108,13 @@ int main(int argc, char **argv)
 		for (k = 0; k < n_want; ++k) {
 			Board b; b.player = R[k].P; b.opponent = R[k].O;
 			R[k].v = (signed char) solve(&search, b);
-			#pragma omp atomic
-			++done;
-			if (omp_get_thread_num() == 0 && k % 5000 == 0) fprintf(stderr, "%lld / %lld, %.0f s\n", done, n_want, omp_get_wtime() - t0);
+			const long long now = ++done;
+			if (omp_get_thread_num() == 0 && k % 5000 == 0) fprintf(stderr, "%lld / %lld, %.0f s\n", now, n_want, omp_get_wtime() - t0);
 		}
 		search_free(&search);
 	}
-	fwrite(R, sizeof *R, n_want, g);
-	if (fclose(g) != 0) evtool::die("cannot write %s", outname);
+	const bool written = fwrite(R, sizeof *R, (size_t) n_want, g) == (size_t) n_want;
+	if (fclose(g) != 0 || !written) evtool::die("cannot write %s", outname);
 	printf("%s: %lld labelled in %.0f s\n", outname, n_want, omp_get_wtime() - t0);
 	return 0;
 }

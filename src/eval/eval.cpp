@@ -973,7 +973,38 @@ static void eval_flat(void)
 }
 #endif
 
-void eval_open(const char* file)
+#if EVAL_SLOTS == 48
+/**
+ * The extra groups of the 64-slot evaluation that the 48 slots leave out (eval_feature48.h: X11 and X5). The weights of
+ * the 48-slot model are 0 there; the weights of the 64-slot model are not, and the 48 slots would read them without
+ * these groups: another evaluation.
+ */
+static const int EVAL_X_LEFT_OUT[2] = { 5, 11 };
+
+/** @brief true if the weights of a ply (a file with the extra groups) are not 0 in a group left out by the 48 slots. */
+static bool eval_left_out_weights(const short *w)
+{
+	for (int g : EVAL_X_LEFT_OUT) {
+		const short *x = w + EVAL_N_PACKED;
+		for (int i = 0; i < g; ++i) x += EVAL_X_SIZE[i];
+		for (int k = 0; k < EVAL_X_SIZE[g]; ++k) if (x[k]) return true;
+	}
+	return false;
+}
+#endif
+
+/**
+ * @brief Load the weights of an evaluation file (see eval_open).
+ *
+ * The model of the weights is checked: a file without the extra groups (the weights of Edax 4.5 or of eval2) is read
+ * with a warning (the weights of the extra groups 0); with 48 slots, a file whose weights are not 0 in the groups the 48
+ * slots leave out (the weights of the 64-slot model) is refused. With 64 slots, the weights of the 48-slot model are
+ * read: the 16 slots of the left-out groups add 0, and the evaluation is the one of the 48 slots.
+ *
+ * @param file File name of the evaluation function data.
+ * @param any_model The weights are read without the check of the 48 slots.
+ */
+static void eval_load(const char* file, const bool any_model)
 {
 	EvalFileHeader header;
 	unsigned int crc = 0;
@@ -1065,8 +1096,11 @@ void eval_open(const char* file)
 	if (header.mobility) fatal_error("%s holds mobility weights: they need a build with EVAL_MOBILITY\n", file);
 #endif
 #if EVAL_XGROUPS
-	// (v4.5.5-newedax.13) a file without the extra groups (the eval.dat of eval2 or of Edax 4.5) is read with the extra weights 0: a wrong evaluation
-	if (header.n_group == EVAL2_N_GROUP) warn("%s has no weights for the extra groups of this build (EVAL_SLOTS %d): the evaluation is wrong; use the eval.dat of the release of this build\n", file, EVAL_SLOTS);
+	// a file without the extra groups (the eval.dat of eval2 or of Edax 4.5, as bin/data/eval.dat of the repository) is
+	// read with a warning: most features of this build read the extra groups, whose weights are then 0
+	if (header.n_group == EVAL2_N_GROUP)
+		warn("%s holds the weights of Edax 4.5 or of eval2 (no extra groups): this Edax (EVAL_SLOTS %d) runs, but its evaluation is wrong; "
+			"use bin/data/eval.dat of the release ZIP of this build (edax-<version>-%d.zip)\n", file, EVAL_SLOTS, EVAL_SLOTS);
 #endif
 	n_w = (int) header.n_weights;
 	w = (short*) malloc(n_w * sizeof (*w)); // a temporary to read packed weights
@@ -1078,6 +1112,10 @@ void eval_open(const char* file)
 		if (header.format == 2) crc = crc32c_bytes(crc, w, n_w * sizeof (short));
 #if EVAL_MOBILITY
 		if (header.mobility) memcpy(EVAL_MOBILITY_WEIGHT[ply], w + n_w - EVAL_N_MOBILITY, sizeof EVAL_MOBILITY_WEIGHT[ply]); // (form 2, ply 0 to 53)
+#endif
+#if EVAL_SLOTS == 48
+		if (!any_model && header.n_group != EVAL2_N_GROUP && eval_left_out_weights(w))
+			fatal_error("%s holds the weights of the 64-slot model (ply %d): this Edax (EVAL_SLOTS 48) needs the eval.dat of the 48-slot release\n", file, ply);
 #endif
 		if (ply < 2) continue;	// skip ply 1 & 2
 
@@ -1165,6 +1203,11 @@ void eval_open(const char* file)
 #endif
 	// fwrite(*EVAL_WEIGHT, sizeof(Eval_weight), EVAL_N_PLY, f);
 	// fclose(f);
+}
+
+void eval_open(const char* file)
+{
+	eval_load(file, false);
 }
 
 /**

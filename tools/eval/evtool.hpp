@@ -9,6 +9,7 @@
 
 #include <cctype>
 #include <climits>
+#include <cmath>
 #include <cstdarg>
 #include <cstdint>
 #include <cstdio>
@@ -79,6 +80,21 @@ inline void xname(char (&name)[N], const char *format, ...)
 	if (n < 0 || (size_t) n >= N) die("file name too long: %s...", name);
 }
 
+#ifdef _WIN32
+extern "C" __declspec(dllimport) int __stdcall MoveFileExA(const char *, const char *, unsigned long);
+#endif
+
+/** replace the file to by the file from (renamed; an existing file to is replaced at once), or exit */
+inline void replace_file(const char *from, const char *to)
+{
+#ifdef _WIN32
+	const bool ok = MoveFileExA(from, to, 1 /* MOVEFILE_REPLACE_EXISTING */) != 0;
+#else
+	const bool ok = rename(from, to) == 0;
+#endif
+	if (!ok) { remove(from); die("cannot replace %s", to); }
+}
+
 /** fread of exactly n items, or exit with "cannot read <file>" */
 inline void xfread(void *p, size_t size, size_t n, FILE *f, const char *file)
 {
@@ -108,6 +124,12 @@ struct Rec { uint64_t P, O; signed char v; };
 #pragma pack(pop)
 static_assert(sizeof (Rec) == 17, "17-byte records");
 
+/** true if a record is a position: disjoint discs, 4 discs at least */
+inline bool rec_valid(const Rec &r)
+{
+	return !(r.P & r.O) && popc(r.P | r.O) >= 4;
+}
+
 /** hash used to split the records into training and test samples */
 inline uint64_t mix64(uint64_t x)
 {
@@ -128,6 +150,31 @@ inline long long file_size(FILE *f)
 	fseeko(f, 0, SEEK_SET);
 #endif
 	return n;
+}
+
+/** the number of records of a data file (left at its start), or exit if its size is not a whole number of records */
+inline long long rec_count(FILE *f, const char *file)
+{
+	const long long n = file_size(f);
+	if (n < 0 || n % (long long) sizeof (Rec) != 0) die("%s is damaged (its size is not a whole number of 17-byte records)", file);
+	return n / (long long) sizeof (Rec);
+}
+
+/**
+ * the next records of a data file (at most max): their number, 0 at the end of the file; exit on a read error or on a
+ * record that is not a position (rec_valid). *done: the records read before, then after them.
+ */
+inline size_t rec_read(Rec *buf, size_t max, FILE *f, const char *file, long long *done)
+{
+	const size_t m = fread(buf, sizeof (Rec), max, f);
+	if (m < max && ferror(f)) die("cannot read %s", file);
+	for (size_t i = 0; i < m; ++i)
+		if (!rec_valid(buf[i])) {
+			fprintf(stderr, "%s: record %lld is not a position (discs of both sides on a square, or fewer than 4 discs)\n", file, *done + (long long) i);
+			exit(1);
+		}
+	*done += (long long) m;
+	return m;
 }
 
 /** data source: files <dir>/<prefix>NN.bin, weight of their samples, at most max training samples per ply */
@@ -615,18 +662,41 @@ inline uint64_t et_get_moves(uint64_t P, uint64_t O)
 inline int et_mob(const ET_Eval *e, uint64_t P, uint64_t O)
 {
 	const int ply = popc(P | O) - 4;
+	if ((P & O) || ply < 0) die("et_mob: not a position (discs of both sides on a square, or fewer than 4 discs)");
 	int a = popc(et_get_moves(P, O)), b = popc(et_get_moves(O, P));
 	if (a > 31) a = 31;
 	if (b > 31) b = 31;
 	return e->mob[ply][a] + e->mob[ply][32 + b];
 }
 
-inline void et_write(const ET_Eval *e, const char *file)
+/**
+ * write an eval.dat of form 1: the pattern weights, then, if mob is not null, "MOBW" and the 61 x 64 mobility weights
+ * mob (as read by eval2). The file is written as <file>.tmp, then put in the place of file: a failure leaves file as it was.
+ */
+inline void et_write(const ET_Eval *e, const char *file, const void *mob = nullptr)
 {
-	FILE *f = xfopen(file, "wb");
-	fwrite(&e->edax, 4, 5, f); fwrite(&e->date, 8, 1, f);
-	fwrite(e->w, 2, (size_t) ET_NW * ET_NPLY, f);
-	if (fclose(f) != 0) die("cannot write %s", file);
+	char tmp[1024];
+	xname(tmp, "%s.tmp", file);
+	FILE *f = xfopen(tmp, "wb");
+	const unsigned int tag = 0x4d4f4257;	// "MOBW"
+	bool ok = fwrite(&e->edax, 4, 5, f) == 5 && fwrite(&e->date, 8, 1, f) == 1
+	       && fwrite(e->w, 2, (size_t) ET_NW * ET_NPLY, f) == (size_t) ET_NW * ET_NPLY;
+	if (mob) ok = ok && fwrite(&tag, 4, 1, f) == 1 && fwrite(mob, 2, (size_t) ET_NPLY * ET_NMOB, f) == (size_t) ET_NPLY * ET_NMOB;
+	if (fclose(f) != 0 || !ok) { remove(tmp); die("cannot write %s", file); }
+	replace_file(tmp, file);
+}
+
+/**
+ * a weight of an eval.dat (16 bits) from a weight in discs: x 128, rounded to the nearest, within -32768 to 32767;
+ * exit if it is not a number
+ */
+inline short et_short(double discs)
+{
+	const double v = discs * 128;
+	if (v != v) die("a weight is not a number (the training failed)");
+	if (v >= 32767) return 32767;
+	if (v <= -32768) return -32768;
+	return (short) lrint(v);
 }
 
 /** Edax's weight ply for a position with n_empties (accumlate_eval: plies 0/1 use 2/3, >= 54 use 52/53) */

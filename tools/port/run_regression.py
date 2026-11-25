@@ -28,6 +28,10 @@ def main(argv):
         return 2
     exe, work, eval_file, fixture = (os.path.abspath(a) for a in argv[1:5])
     cases = argv[5:] or CASES
+    missing = [p for p in (exe, eval_file, fixture) if not os.path.isfile(p)]
+    if missing:
+        print(f'missing: {", ".join(missing)}')
+        return 2
     os.makedirs(os.path.join(work, 'tests'), exist_ok=True)
     shutil.copyfile(fixture, os.path.join(work, 'tests', 'merge-complete-fixture.dat'))
     env = dict(os.environ, EDAX_EVAL_FILE=eval_file)
@@ -40,8 +44,11 @@ def main(argv):
                 if os.name == 'nt':
                     import ctypes
                     h = ctypes.windll.kernel32.OpenProcess(0x0200 | 0x0400, False, p.pid)
-                    ctypes.windll.kernel32.SetProcessAffinityMask(h, ctypes.c_size_t(1 << int(os.environ.get('REGRESSION_CPU', '0'))))
-                    ctypes.windll.kernel32.CloseHandle(h)
+                    cpu = int(os.environ.get('REGRESSION_CPU', '0'))
+                    if not h or not ctypes.windll.kernel32.SetProcessAffinityMask(h, ctypes.c_size_t(1 << cpu)):
+                        print(f'{case}: WARNING: the affinity to the CPU {cpu} failed: the case runs on any CPU')
+                    if h:
+                        ctypes.windll.kernel32.CloseHandle(h)
                 code = p.wait(timeout=int(os.environ.get('REGRESSION_TIMEOUT', '60')))
             except subprocess.TimeoutExpired:
                 p.kill()

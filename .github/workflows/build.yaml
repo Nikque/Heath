@@ -1,16 +1,20 @@
 name: build
 
+# The build of each system, then -solve of FFO 1-19 (one thread, exact) compared with the scores of the problem file:
+# the number of results, the score and the best move of each position (tests/check-solve.py).
+# Boost (headers) and the eval.dat of Heath come from .github/fetch-boost.py and .github/fetch-eval.py, as in
+# release-binaries.yaml: bin/data/eval.dat of the repository is the one of eval2.
 on:
   pull_request:
-    paths: ['src/**', 'include/**', '.github/workflows/build.yaml']
+    paths: ['src/**', 'include/**', 'problem/**', 'tests/check-solve.py', '.github/workflows/build.yaml', '.github/fetch-*.py']
   push:
-    branches: [ master ]
-    paths: ['src/**', 'include/**', '.github/workflows/build.yaml']
+    branches: [ main ]
+    paths: ['src/**', 'include/**', 'problem/**', 'tests/check-solve.py', '.github/workflows/build.yaml', '.github/fetch-*.py']
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false # We want results from all OSes even if one fails.
       matrix:
@@ -18,17 +22,36 @@ jobs:
         include:
           - os: ubuntu-latest
             build_command: make build ARCH=x86-64-v3 COMP=gcc OS=linux # (names of src/Makefile: x64-modern and armv8.5-a were not)
+            exe: lEdax-x86-64-v3
           - os: macos-latest
             build_command: make build ARCH=arm64 COMP=clang OS=osx
+            exe: mEdax-arm64
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: fetch Boost
+      run: python3 .github/fetch-boost.py
 
     - name: build
       run: |-
         mkdir -p bin
         cd src
         ${{ matrix.build_command }}
+
+    - name: fetch the eval.dat of Heath
+      run: python3 .github/fetch-eval.py t/eval.dat
+
+    - name: solve FFO 1-19 and compare with the scores of the problem file
+      run: python3 tests/check-solve.py bin/${{ matrix.exe }} problem/fforum-1-19.obf --cwd bin --eval t/eval.dat
+
+    - name: the comparison fails with a wrong score
+      run: |-
+        sed 's/G8:+18;/G8:+64;/' problem/fforum-1-19.obf > wrong-score.obf
+        grep -q 'G8:+64;' wrong-score.obf
+        rc=0
+        python3 tests/check-solve.py bin/${{ matrix.exe }} wrong-score.obf --cwd bin --eval t/eval.dat || rc=$?
+        test "$rc" -eq 1
 
     - uses: actions/upload-artifact@v4
       with:
@@ -37,10 +60,13 @@ jobs:
 
   windows-build:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: fetch Boost
+      run: python .github/fetch-boost.py
 
     - name: build
       run: |-
@@ -48,6 +74,13 @@ jobs:
         cd src
         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
         nmake -fnmakefile vc-x64-v3
+      shell: cmd
+
+    - name: fetch the eval.dat of Heath
+      run: python .github/fetch-eval.py t/eval.dat
+
+    - name: solve FFO 1-19 and compare with the scores of the problem file
+      run: python tests\check-solve.py bin\wEdax-x86-64-v3.exe problem\fforum-1-19.obf --cwd bin --eval t\eval.dat
       shell: cmd
 
     - uses: actions/upload-artifact@v4

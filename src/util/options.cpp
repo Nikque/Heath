@@ -717,7 +717,7 @@ void options_dump(FILE *f)
 	fprintf(f, "\tsorting depth increment: pv = %d, all = %d, cut = %d\n",  options.inc_sort_depth[0], options.inc_sort_depth[1], options.inc_sort_depth[2]);
 	fprintf(f, "\ttask number for parallel search: %d\n", options.n_task);
 	fprintf(f, "\tsearch level: %d\n", options.level);
-	fprintf(f, "\tsearch alloted time:"); time_print(options.time, false, stdout); fprintf(f, "\n");
+	fprintf(f, "\tsearch alloted time:"); time_print(options.time, false, f); fprintf(f, "\n");
 	fprintf(f, "\tsearch with: %s\n", play_type[options.play_type]);
 	fprintf(f, "\tsearch pondering: %s\n", boolean_string[options.can_ponder]);
 	fprintf(f, "\tkeep the hash tables of the game: %s\n", boolean_string[options.keep_hash]);
@@ -732,8 +732,9 @@ void options_dump(FILE *f)
 	fprintf(f, "\tbook file: %s\n", options.book_file);
 	fprintf(f, "\tbook allowed: %s\n", boolean_string[options.book_allowed]);
 	if (options.book_depth > 0) fprintf(f, "\tbook depth at startup: %d\n", options.book_depth);
-	if (options.book_format > 0) fprintf(f, "\tbook file form: %d\n", options.book_format);
 	else fprintf(f, "\tbook depth at startup: auto (the depth of the loaded book)\n");
+	if (options.book_format > 0) fprintf(f, "\tbook file form: %d\n", options.book_format);
+	else fprintf(f, "\tbook file form: auto (the form of the loaded file)\n");
 	fprintf(f, "\tbook randomness: %d\n", options.book_randomness);
 	fprintf(f, "\tbook timed-save interval: %d minutes\n", options.book_save_interval);
 	fprintf(f, "\tbook deviate-save interval: %d productive rounds (0 = completion only)\n", options.book_deviate_save_rounds);
@@ -752,7 +753,7 @@ void options_dump(FILE *f)
 	fprintf(f, "\thost: %s\n", options.ggs_host ? options.ggs_host : "?");
 	fprintf(f, "\tport: %s\n", options.ggs_port ? options.ggs_port : "?");
 	fprintf(f, "\tlogin: %s\n", options.ggs_login ? options.ggs_login : "?");
-	fprintf(f, "\tpassword: %s\n", options.ggs_password ? options.ggs_password : "?");
+	fprintf(f, "\tpassword: %s\n", options.ggs_password ? "(set)" : "?");
 	fprintf(f, "\topen: %s\n\n", boolean_string[options.ggs_open]);
 
 	fprintf(f, "PV options\n");

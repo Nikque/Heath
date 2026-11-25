@@ -2,8 +2,9 @@
  * @file w2dat2.cpp
  *
  * Convert weights dumped by evsearch (-dump: <cfg>.pat, <cfg>.scl, <cfg>_<ply>.w) for a configuration made of
- * Edax's 46 features (+ optional "mob" or "mobp") into an Edax eval.dat of form 1; the mobility weights are appended to
- * the file ("MOBW" then 61 x 64 shorts: side to move [0..31], opponent [32..63]), as read by eval2.
+ * Edax's 46 features (+ optional "mob", "mobp" or both) into an Edax eval.dat of form 1; the mobility weights are appended
+ * to the file ("MOBW" then 61 x 64 shorts: side to move [0..31], opponent [32..63]), as read by eval2 (with mob and mobp,
+ * the weights of mobp are added to those of the side to move). Every weight is rounded to 16 bits as et_short does.
  * A configuration with patterns of the extra groups of the 64-slot evaluation (ET_X_GROUP) gives a file of form 2
  * with all the extra groups (the groups out of the configuration have weights 0), read by a build with EVAL_SLOTS=64.
  * usage: w2dat2 <template eval.dat> <dir> <cfg> <out.dat> [version x.y.z] [-interp]
@@ -46,9 +47,12 @@ int main(int argc, char **argv)
 		fclose(f);
 		if (r < 4 || r % 2) die("bad scalar features in %s", name);
 	}
-	const int has_mob = sc[0] | sc[2], mob_ofs = sc[0] ? sc[1] : sc[3], mob_n = sc[0] ? 64 : 32;	// mob (both sides) or mobp (side to move only)
+	// mob (both sides: 64 weights) and mobp (side to move only: 32 weights, the same index as the first 32 of mob): with
+	// both, the weights of mobp are added to the first 32 of mob (the same evaluation)
+	const int has_mob = sc[0] | sc[2], mob_ofs = sc[1], mobp_ofs = sc[3];
 	for (int i = 4; i < 32; i += 2) if (sc[i]) die("only the mob / mobp scalars are supported");
-	if (has_mob && (mob_ofs < 1 || mob_ofs > nw - mob_n)) die("bad scalar features in %s", name);
+	if ((sc[0] && (mob_ofs < 1 || mob_ofs > nw - 64)) || (sc[2] && (mobp_ofs < 1 || mobp_ofs > nw - 32))) die("bad scalar features in %s", name);
+	if (sc[0] && sc[2]) printf("mob and mobp: the weights of mobp are added to the weights of mob of the side to move\n");
 	static short mob[61][64];
 	double *all = (double *) xmalloc((size_t) 54 * nw * sizeof *all), *w;
 	double maxdiff = 0;
@@ -62,7 +66,7 @@ int main(int argc, char **argv)
 		double *cnt = (double *) xmalloc((size_t) 54 * nw * sizeof *cnt);
 		long long filled = 0;
 		for (int ply = 2; ply <= 53; ++ply) {
-			sprintf(name, "%s/%s_%02d.n", dir, cfg, ply);
+			evtool::xname(name, "%s/%s_%02d.n", dir, cfg, ply);
 			if (!(f = fopen(name, "rb"))) { fprintf(stderr, "cannot open %s\n", name); return 1; }
 			xfread(cnt + (size_t) ply * nw, 8, nw, f, name);
 			fclose(f);
@@ -87,7 +91,7 @@ int main(int argc, char **argv)
 	for (int ply = 2; ply <= 53; ++ply) {
 		w = all + (size_t) ply * nw;
 		short *ew = e->w[ply];
-		ew[ET_NW - 1] = (short) lrint(w[0] * 128);
+		ew[ET_NW - 1] = et_short(w[0]);
 		for (int j = 0; j < n_inst; ++j) {
 			if (j > 0 && io[j] == io[j - 1]) continue;
 			const int n = in[j];
@@ -112,13 +116,11 @@ int main(int argc, char **argv)
 				for (int v = 0; v < size; ++v) {
 					int y = v, xe = 0;
 					for (int i = n - 1; i >= 0; --i) { xe += (y % 3) * pw[i]; y /= 3; }
-					long q = lrint(w[io[j] + v] * 128);
-					if (q > 32767) q = 32767;
-					if (q < -32768) q = -32768;
+					const short q = et_short(w[io[j] + v]);
 					const int pi = ET_PACK[cl][xe];
 					if (seen[pi]) { const double d = fabs((double) ew[pi + ET_POFS[cl]] - q); if (d > maxdiff) maxdiff = d; }
 					seen[pi] = 1;
-					ew[pi + ET_POFS[cl]] = (short) q;
+					ew[pi + ET_POFS[cl]] = q;
 				}
 				free(seen);
 				covered[cl] = 1; found = 1;
@@ -137,16 +139,13 @@ int main(int argc, char **argv)
 				for (int v = 0; v < ET_X_SIZE[g]; ++v) {
 					int y = v, xe = 0;
 					for (int i = n - 1; i >= 0; --i) { xe += (y % 3) * pw[i]; y /= 3; }
-					long q = lrint(w[io[j] + v] * 128);
-					if (q > 32767) q = 32767;
-					if (q < -32768) q = -32768;
-					xw[ply][g][xe] = (short) q;
+					xw[ply][g][xe] = et_short(w[io[j] + v]);
 				}
 				has_x = found = 1;
 			}
 			if (!found) { fprintf(stderr, "instance %d is not an Edax feature\n", j); return 1; }
 		}
-		if (has_mob) for (int i = 0; i < mob_n; ++i) mob[ply][i] = (short) lrint(w[mob_ofs + i] * 128);
+		for (int i = 0; i < 64; ++i) mob[ply][i] = et_short((sc[0] ? w[mob_ofs + i] : 0) + (sc[2] && i < 32 ? w[mobp_ofs + i] : 0));
 	}
 	for (int c = 0; c < 12; ++c) if (c < 10 && c != 4 && c != 7 && c != 5 && c != 6 && c != 3 && c != 0 && c != 9 && c != 8 && !covered[c]) { fprintf(stderr, "Edax class %d is not in the configuration\n", c); return 1; }
 	for (int ply = 0; ply < 2; ++ply) { memcpy(e->w[ply], e->w[ply + 2], sizeof e->w[0]); memcpy(mob[ply], mob[ply + 2], sizeof mob[0]); }
@@ -179,30 +178,27 @@ int main(int argc, char **argv)
 		if (has_mob) memcpy(x + 96 + 26 * 20, ET_MOBILITY_GROUP, 20);
 		uint32_t crc = crc32c_update(0, x, size - 4);
 		memcpy(x + size - 4, &crc, 4);
-		f = xfopen(argv[4], "wb");
-		fwrite(x, 1, size, f);
+		// written as <out.dat>.tmp, then put in the place of out.dat: a failure leaves out.dat as it was
+		char tmp[1024];
+		evtool::xname(tmp, "%s.tmp", argv[4]);
+		f = xfopen(tmp, "wb");
+		bool ok = fwrite(x, 1, size, f) == (size_t) size;
 		crc = 0;
 		for (int ply = 0; ply < ET_NPLY; ++ply) {
-			const auto put = [&](const void *p, size_t n) { crc = crc32c_update(crc, (const unsigned char *) p, n * 2); fwrite(p, 2, n, f); };
+			const auto put = [&](const void *p, size_t n) { crc = crc32c_update(crc, (const unsigned char *) p, n * 2); ok = ok && fwrite(p, 2, n, f) == n; };
 			put(e->w[ply], ET_NW);
 			for (int g = 0; g < 13; ++g) put(xw[ply][g], ET_X_SIZE[g]);
 			if (has_mob) put(mob[ply], ET_NMOB);
 		}
-		fwrite(&crc, 4, 1, f);
-		fwrite("EEND", 1, 4, f);
-		if (fclose(f) != 0) die("cannot write %s", argv[4]);
+		ok = ok && fwrite(&crc, 4, 1, f) == 1 && fwrite("EEND", 1, 4, f) == 4;
+		if (fclose(f) != 0 || !ok) { remove(tmp); die("cannot write %s", argv[4]); }
+		replace_file(tmp, argv[4]);
 		printf("%s written, form 2 (largest difference between symmetric entries: %.0f)\n", argv[4], maxdiff);
 		return 0;
 	}
-	et_write(e, argv[4]);
+	// form 1, and the mobility weights after it: "MOBW" then 61 x 64 shorts (same byte order as the file)
+	et_write(e, argv[4], has_mob ? mob : nullptr);
 	printf("%s written (largest difference between symmetric entries: %.0f)\n", argv[4], maxdiff);
-	if (has_mob) {	// mobility weights appended to the evaluation file: "MOBW" then 61 x 64 shorts (same byte order as the file)
-		const unsigned int tag = 0x4d4f4257;
-		f = xfopen(argv[4], "ab");
-		fwrite(&tag, 4, 1, f);
-		fwrite(mob, sizeof mob, 1, f);
-		if (fclose(f) != 0) die("cannot write %s", argv[4]);
-		printf("mobility weights appended\n");
-	}
+	if (has_mob) printf("mobility weights appended\n");
 	return 0;
 }

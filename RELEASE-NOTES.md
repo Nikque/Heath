@@ -38,12 +38,12 @@ Each version contains all changes of the C versions on the same row.
 
 ## v4.5.5-heath.20
 
-The release of v4.5.5-heath.20-pre1 with a better search and lazy auto. The time of a move and the probcut change, and it is stronger than the version before.
+The release of v4.5.5-heath.20-pre1 with a better search and lazy auto. The time of a move and the probcut change. In games of one thread, the changes of the search won more discs than the search before (see Strength).
 
 **Changes**
 
 - All the changes of v4.5.5-heath.20-pre1.
-- Five changes of the search. They have no setting and are always on.
+- Five changes of the search. They are always on and cannot be turned off. Two of their values can still be set: `time-ext-max` (2.0, how far the time of a move may stretch) and `pc-end` (0.85, the factor of the margin of the probcut of the searches to the end).
 
 | What changes | How |
 |---|---|
@@ -60,7 +60,7 @@ The release of v4.5.5-heath.20-pre1 with a better search and lazy auto. The time
 
 **Strength**
 
-One thread, no book, both colors from positions filled at random.
+One thread (4 threads for lazy), no book, both colors from positions filled at random; the time is that of each side. The games were played with a build that had the changes as options; this version searches the same scores, nodes and moves without them (the tests and measurements). The first two rows compare the changes one after the other, not this version with v4.5.5-heath.19 directly, and lazy auto was not shown stronger.
 
 | Comparison | Time a game | Games | Discs a game | Elo |
 |---|---|---|---|---|
@@ -137,7 +137,7 @@ The exact endgame search is faster. The change is the same as in [v4.5.5-nikque.
 **Speed**
 
 - At 5 and 6 empty squares, a quadrant's only empty square is played first, and a small thread-local transposition table (2^14 entries) is probed. 
-- With one thread, exact solves of fforum-40-59 take 98.2% of the time (505.2 s to 496.2 s), and fforum-20-39 searches 89.0% of the positions. Every score and best move is the same as in the previous release.
+- With one thread, exact solves of fforum-40-59 take 98.2% of the time (505.2 s to 496.2 s: the average of 4 runs each, alternately, on one logical CPU of a Ryzen 9 9950X while other work used every CPU). The positions searched: 90.2% on fforum-40-59 (28.63 to 25.81 billion), 89.0% on fforum-20-39. Every score and best move is the same as in the previous release.
 - The midgame search is unchanged: positions that are not solved search the same number of positions as before.
 
 **Compatibility**
@@ -558,7 +558,7 @@ The shapes on the board (X the squares of the shape, . the other squares; in the
 
 **Strength**
 
-Games of the 64-slot build (refit, its PGO build). The Elo is that of the new build; the brackets are 95% intervals.
+Games of the 64-slot build (refit, its PGO build), without a book, from random openings, each played with both colours. The games against eval2, the weights of 11/05 and Edax were played with one thread on each side (`-n 1`); the time is that of each side. The thread count of the games against the 48-slot build is not in the records. The Elo is that of the new build; the brackets are 95% intervals.
 
 | against | condition | games | Elo |
 |---|---|---|---|

@@ -129,7 +129,7 @@ feature setboard=1 playother=1 ping=1 draw=0 sigint=0 sigterm=0 analyze=1 myname
 使い方の流れ：
 
 1. ライブラリと `data/eval.dat`（必須）を、自分のプログラムと同じフォルダーに置きます。`data/book.dat` と `config.ini` は、必要なら置きます。
-2. C・C++ からは、ソースの `src/libedax.h` をインクルードします。ほかの言語からは、その言語の外部関数インターフェース（FFI）でライブラリを読み込みます。Dart には libedax4dart というパッケージがあります。
+2. C・C++ からは、ソースの `src/api/libedax.h` をインクルードします。ほかの言語からは、その言語の外部関数インターフェース（FFI）でライブラリを読み込みます。Dart には libedax4dart というパッケージがあります。
 3. 最初に `libedax_initialize` を呼びます（ここで設定が読まれます）。次に `edax_init` で対局を始め、最後に `libedax_terminate` を呼びます。
 4. 関数は、Edax のコマンドに対応しています（`edax_play`・`edax_go`・`edax_hint`・`edax_book_deviate` など）。
 
@@ -176,7 +176,7 @@ int main(void)
 
 ### くわしい説明（元の libedax との違い・追加した関数・ビルド）
 
-**互換性**：関数と、呼び出し側とやり取りするデータの並びは、元の libedax と同じです（`src/libedax.h`）。Edax 4.5 で内部の構造が変わっているので、内部のデータはそのまま渡しません。元の並びのデータに詰め替えて渡します。
+**互換性**：関数と、呼び出し側とやり取りするデータの並びは、元の libedax と同じです（`src/api/libedax.h`）。Edax 4.5 で内部の構造が変わっているので、内部のデータはそのまま渡しません。元の並びのデータに詰め替えて渡します。
 
 **追加した関数**
 

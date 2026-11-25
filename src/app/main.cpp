@@ -21,6 +21,8 @@
 #include "protocol/ui.h"
 #include "util/util.h"
 
+bool ui_book_save_failed(void);
+
 #include <locale.h>
 #include <stdio.h>
 #include <string.h>
@@ -158,7 +160,12 @@ int main(int argc, char **argv)
 			
 	
 		}
-		else usage();
+		else { // an unknown or removed option, or an option without its value: nothing is done (up to v4.5.5-heath.20 the usage was printed with the exit code 0)
+			fprintf(stderr, "Unknown option, or option without its value: %s (edax -help prints the options)\n", argv[i]);
+			options_free();
+			mm_free(ui);
+			return EXIT_FAILURE;
+		}
 	}
 	options_bound();
 
@@ -223,6 +230,6 @@ int main(int argc, char **argv)
 	options_free();
 	if (ui_freed) mm_free(ui); // (else the input thread still uses it: it ends with the process)
 
-	return 0;
+	return ui_book_save_failed() ? 1 : 0; // (the book could not be saved at the end: "@save ok=0" was written)
 }
 

@@ -1,6 +1,7 @@
 # Build loadbench.cpp against the sources of a tree (one logical CPU; MSVC x64 AVX-512, the flags of build-msvc.cmd).
 # usage: pwsh -File build_loadbench.ps1 -Tree <tree> -Out <exe> [-Arch x86 -Extra '<cl options>']
 # Then: <exe> <book file> <loads> [save file [form]]   (run it with an affinity of one logical CPU)
+# The exit code is the one of the compiler (not 0 also when the exe was not made).
 param([string]$Tree, [string]$Out, [string]$Arch = 'x64', [string]$Extra = '/D HAS_CPU_64 /arch:AVX512 /vlen=256 /D POPCOUNT')
 $root = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 $env:PATH = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer;$env:PATH"
@@ -9,3 +10,6 @@ $cl = "cl /nologo /I$root\third_party\boost_1_92_0 /std:c++23preview /Zc:__cplus
 $p = Start-Process cmd.exe -ArgumentList '/c', "call `"$vsdev`" -arch=$Arch -host_arch=x64 >nul && $cl" -NoNewWindow -PassThru -RedirectStandardOutput "$Out.log"
 $p.ProcessorAffinity = 1; $p.WaitForExit()
 "build $Out exit $($p.ExitCode)"; Get-Content "$Out.log" | Select-String ' error ' | Select-Object -First 5
+if ($p.ExitCode -ne 0) { exit $p.ExitCode }
+if (-not (Test-Path -LiteralPath $Out)) { "no $Out"; exit 1 }
+exit 0

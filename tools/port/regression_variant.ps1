@@ -4,8 +4,8 @@
 #        -Arch x86 -Name x86ia32 -Extra '/arch:IA32 /D EVAL_SLOTS=64' -Cases evalslots   (set EDAX_NO_SSE2=1 first:
 #        the code for processors without SSE2)
 # The build and the outputs go to <newedax folder>\runs\reg-<name>. -Cpu n: the logical CPU of the build and the cases (default 0).
-# -Eval <eval.dat>: the evaluation file of the cases (default bin\data\eval.dat, the one of eval2 with the mobility weights,
-# that a build with EVAL_MOBILITY=0 refuses in evalform2: give it the eval.dat of Edax 4.5).
+# -Eval <eval.dat> (required): the evaluation file of the cases, an eval.dat of Heath with the slots of the build (64, or
+# 48 for a build with /D EVAL_SLOTS=48). bin\data\eval.dat of the repository is the one of eval2, which the builds read with a warning (their evaluation is then wrong).
 # The exit code is 1 when the build or a case fails.
 param([string]$Arch, [string]$Name, [string]$Extra, [string[]]$Cases, [string]$Tree = '', [int]$Cpu = 0, [string]$Eval = '')
 $env:REGRESSION_CPU = "$Cpu"
@@ -13,7 +13,7 @@ $Cases = @($Cases -split ',')
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $root = Split-Path -Parent $repo
 if ($Tree -eq '') { $Tree = $repo }
-if ($Eval -eq '') { $Eval = "$repo\bin\data\eval.dat" }
+if ($Eval -eq '' -or -not (Test-Path -LiteralPath $Eval -PathType Leaf)) { "-Eval <eval.dat of Heath> is required ($Eval)"; exit 1 }
 $env:PATH = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer;$env:PATH"
 $vsdev = 'C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\VsDevCmd.bat'
 $w = "$root\runs\reg-$Name"; New-Item -ItemType Directory -Force $w | Out-Null

@@ -8,6 +8,10 @@
 #   The cases of the tools with the search are run with the C tools of --c (sources of nikque.17, evaluation file of
 #   Edax 4.5) and, with the evaluation file of eval2 (mobility weights), with the C tools of --c2.
 #   --repeat n: run each case n times more, alternating C and C++, and print the CPU cycles and peak memory of both.
+#   A case matches when both sides end with the exit code 0 and give the same outputs; a repetition of --repeat counts
+#   only when both runs end with 0 and were measured (affinity, cycles, memory).
+#   Exit code: 0 all the cases run match; 1 a case differs, fails or could not be measured; 2 a case of --cases is
+#   unknown or was not run (no exe, no --c2 / --eval2), or no case was run.
 import argparse, ctypes, filecmp, os, random, re, shutil, struct, subprocess, sys
 from ctypes import wintypes
 
@@ -26,19 +30,26 @@ LAST_PRIVATE = 0
 
 
 def run1(cmd, cwd, stdout, stderr):
-    """Run cmd on logical CPU --cpu at below-normal priority; return (exit code, cycles, peak working set in bytes)."""
+    """Run cmd on logical CPU --cpu at below-normal priority; return (exit code, cycles, peak working set in bytes).
+    The cycles and the memory are None when they could not be measured (the affinity, or a query, failed: said)."""
+    global LAST_PRIVATE
     with open(stdout, 'wb') as o, open(stderr, 'wb') as e:
         p = subprocess.Popen(cmd, cwd=cwd, stdout=o, stderr=e, creationflags=0x4000)
         h = wintypes.HANDLE(int(p._handle))
-        k32.SetProcessAffinityMask(h, ctypes.c_size_t(1 << CPU))
+        pinned = bool(k32.SetProcessAffinityMask(h, ctypes.c_size_t(1 << CPU)))
+        if not pinned:
+            print(f'    WARNING: affinity to the CPU {CPU} failed (error {ctypes.get_last_error()}): run not measured', flush=True)
         rc = p.wait()
         c = ctypes.c_ulonglong(0)
-        k32.QueryProcessCycleTime(h, ctypes.byref(c))
+        cycles = c.value if k32.QueryProcessCycleTime(h, ctypes.byref(c)) and c.value > 0 and pinned else None
         m = PMC(); m.cb = ctypes.sizeof(m)
-        psapi.GetProcessMemoryInfo(h, ctypes.byref(m), m.cb)
-    global LAST_PRIVATE
-    LAST_PRIVATE = m.PeakPagefileUsage	# peak committed private memory of the run
-    return rc, c.value, m.PeakWorkingSetSize
+        memory = bool(psapi.GetProcessMemoryInfo(h, ctypes.byref(m), m.cb))
+    if cycles is None and pinned:
+        print(f'    WARNING: the cycles of the run could not be read (error {ctypes.get_last_error()})', flush=True)
+    if not memory:
+        print('    WARNING: the memory of the run could not be read', flush=True)
+    LAST_PRIVATE = m.PeakPagefileUsage if memory else None	# peak committed private memory of the run
+    return rc, cycles, (m.PeakWorkingSetSize if memory else None)
 
 
 def prepare(a):
@@ -173,16 +184,24 @@ def main():
     a = ap.parse_args()
     global CPU
     CPU = a.cpu
+    want = [n for n in a.cases.split(',') if n] if a.cases else None
+    unknown = sorted(set(want or ()) - {c[0] for c in cases(a)})
+    if unknown:	# (a name mistyped would run nothing)
+        print(f'unknown cases: {", ".join(unknown)}')
+        return 2
     prepare(a)
-    want = set(a.cases.split(',')) if a.cases else None
+    bad = 0
     base = os.path.join(a.work, 'E1base', 'c')
     if (want is None or 'E3' in want) and not os.path.exists(os.path.join(base, 'Rt_21.w')):
         # the base of E3 (-base ../../E1base/c:Rt): the weights of E1 trained by the C tool
         os.makedirs(base, exist_ok=True)
         e1 = [c for c in cases(a) if c[0] == 'E1'][0]
-        run1([os.path.join(a.c, 'evsearch.exe')] + [x.replace('{OUT}', base) for x in e1[2]], base,
-             os.path.join(a.work, 'E1base', 'c.out'), os.path.join(a.work, 'E1base', 'c.err'))
-    bad = 0
+        rc = run1([os.path.join(a.c, 'evsearch.exe')] + [x.replace('{OUT}', base) for x in e1[2]], base,
+                  os.path.join(a.work, 'E1base', 'c.out'), os.path.join(a.work, 'E1base', 'c.err'))[0]
+        if rc != 0:
+            print(f'E1base evsearch FAILED: exit {rc} (the base of E3)')
+            bad += 1
+    ran = skipped = 0
     for name, tool, args, mask in cases(a):
         if want is not None and name not in want:
             continue
@@ -190,16 +209,21 @@ def main():
         if name.endswith('e'):
             if not (a.c2 and a.eval2):
                 print(f'{name:3s} {tool:9s} skipped (no --c2 / --eval2)')
+                skipped += 1
                 continue
             cdir = a.c2
         if not os.path.exists(os.path.join(cdir, tool + '.exe')) or not os.path.exists(os.path.join(a.cpp, tool + '.exe')):
             print(f'{name:3s} {tool:9s} skipped (no exe)')
+            skipped += 1
             continue
+        ran += 1
         oc, rcc, cc, pc = side_run(a, cdir, 'c', name, tool, args)
         op, rcp, cp, pp = side_run(a, a.cpp, 'cpp', name, tool, args)
         diffs = []
         if rcc != rcp:
             diffs.append(f'exit {rcc} / {rcp}')
+        elif rcc != 0:	# the same failure on both sides is not a match
+            diffs.append(f'exit {rcc} on both sides')
         for s in ('out', 'err'):
             if not same_text(os.path.join(a.work, name, f'c.{s}'), os.path.join(a.work, name, f'cpp.{s}'), mask if s == 'out' else None, oc, op):
                 diffs.append('std' + s)
@@ -217,11 +241,27 @@ def main():
             cyc = {'c': [], 'cpp': []}
             peak = {'c': [], 'cpp': []}
             priv = {'c': [], 'cpp': []}
+            failed = 0
             for r in range(a.repeat):
                 order = (('c', cdir), ('cpp', a.cpp)) if r % 2 == 0 else (('cpp', a.cpp), ('c', cdir))
+                runs = {}
                 for side, d in order:
-                    _, _, cy, pk = side_run(a, d, side, name, tool, args)
-                    cyc[side].append(cy); peak[side].append(pk); priv[side].append(LAST_PRIVATE)
+                    _, rc, cy, pk = side_run(a, d, side, name, tool, args)
+                    runs[side] = (rc, cy, pk, LAST_PRIVATE)
+                # a repetition counts only when both runs end with 0 and both were measured
+                if all(rc == 0 and None not in (cy, pk, pv) for rc, cy, pk, pv in runs.values()):
+                    for side, (_, cy, pk, pv) in runs.items():
+                        cyc[side].append(cy); peak[side].append(pk); priv[side].append(pv)
+                else:
+                    failed += 1
+            if failed:
+                print(f'    {failed} of {a.repeat} repetitions failed or were not measured: left out', flush=True)
+            if not cyc['c']:
+                print('    MEASUREMENT FAILED: no repetition measured', flush=True)
+                bad += 1
+                continue
+            if failed:
+                bad += 1
             mc, mp = sorted(cyc['c'])[len(cyc['c']) // 2], sorted(cyc['cpp'])[len(cyc['cpp']) // 2]
             # ratio of the two runs of each repetition (next to each other in time), then their median and quartiles
             pr = sorted(p / c for c, p in zip(cyc['c'], cyc['cpp']))
@@ -231,7 +271,12 @@ def main():
             print(f'    peak working set KiB C {min(peak["c"]) // 1024}-{max(peak["c"]) // 1024}  C++ {min(peak["cpp"]) // 1024}-{max(peak["cpp"]) // 1024};'
                   f'  peak private KiB C {min(priv["c"]) // 1024}-{max(priv["c"]) // 1024}  C++ {min(priv["cpp"]) // 1024}-{max(priv["cpp"]) // 1024}', flush=True)
             print(f'    C++/C of each repetition: median {q(0.5):.3f}, quartiles {q(0.25):.3f} - {q(0.75):.3f}, {sum(r < 1 for r in pr)} of {len(pr)} below 1', flush=True)
-    print(f'cases different: {bad}')
+    print(f'cases run: {ran}, skipped: {skipped}, different or failed: {bad}')
+    if ran == 0:
+        print('no case was run')
+        return 2
+    if want is not None and skipped:	# a case asked by --cases was not run
+        return 2
     return 1 if bad else 0
 
 

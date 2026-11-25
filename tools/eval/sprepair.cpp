@@ -26,19 +26,26 @@ int main(int argc, char **argv)
 		evtool::xname(name, "%s/%s%02d.bin", argv[1], argv[3], ply);
 		FILE *f = fopen(name, "rb");
 		if (!f) continue;
-		long long n = file_size(f);
-		unsigned char *d = (unsigned char *) xmalloc(n + 17);
-		n = (long long) fread(d, 1, n, f);
+		// the whole input is read first (a read error stops the tool: the output of the ply is not written), then the
+		// output is written as <name>.tmp and put in the place of <name> (a failure leaves <name> as it was)
+		const long long n = file_size(f);
+		if (n < 0 || (unsigned long long) n > SIZE_MAX - 17) die("cannot read %s", name);
+		unsigned char *d = (unsigned char *) xmalloc((size_t) n + 17);
+		if (fread(d, 1, (size_t) n, f) != (size_t) n || fgetc(f) != EOF || ferror(f)) die("cannot read %s (a read error, or the file changed)", name);
 		fclose(f);
+		char tmp[1024];
 		evtool::xname(name, "%s/%s%02d.bin", argv[2], argv[3], ply);
-		FILE *g = xfopen(name, "wb");
+		evtool::xname(tmp, "%s.tmp", name);
+		FILE *g = xfopen(tmp, "wb");
 		long long pos = 0, kept = 0, skipped = 0;
+		bool ok = true;
 		while (pos + 17 <= n) {
-			if (valid(d + pos, ply)) { fwrite(d + pos, 1, 17, g); ++kept; pos += 17; }
+			if (valid(d + pos, ply)) { ok = ok && fwrite(d + pos, 1, 17, g) == 17; ++kept; pos += 17; }
 			else { ++pos; ++skipped; }
 		}
 		skipped += n - pos;
-		if (fclose(g) != 0) die("cannot write %s", name);
+		if (fclose(g) != 0 || !ok) { remove(tmp); die("cannot write %s", name); }
+		replace_file(tmp, name);
 		free(d);
 		if (n) printf("ply %2d: %lld bytes, %lld records kept, %lld bytes skipped\n", ply, n, kept, skipped);
 		tot_in += n; tot_out += kept; tot_skip += skipped;

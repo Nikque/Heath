@@ -13,7 +13,9 @@
 #include "util/options.h"
 
 #include <stdlib.h>
+#include <string.h>
 
+bool event_is_secret(const char *line);
 
 /**
  * @brief Initialize a message event.
@@ -137,7 +139,7 @@ void event_add_message(Event *event, char *message)
 	}
 
 	event->ring[last] = message;
-	info("<event add [%d]: %s>\n", last, message);
+	info("<event add [%d]: %s>\n", last, event_is_secret(message) ? "(password)" : message);
 
 	spin_unlock(event);
 }
@@ -165,13 +167,36 @@ void event_wait(Event *event, char **cmd, char **param)
 	free(*cmd);
 	free(*param);
 
-	info("<event wait: %s>\n", message);
+	info("<event wait: %s>\n", event_is_secret(message) ? "(password)" : message);
 
 	n = strlen(message);
 	*cmd = (char*) malloc(n + 1);
 	*param = (char*) malloc(n + 1);
+	if (*cmd == NULL || *param == NULL) fatal_error("cannot allocate a command of %d characters\n", n);
 	parse_command(message, *cmd, *param, n + 1);
 	free(message);
+}
+
+/**
+ * @brief Check if a command line sets a password ("[set] ggs-password <value>").
+ *
+ * Its value is not written to the log, the echo or the diagnostics.
+ *
+ * @param line Command line, or command.
+ * @return true if the line sets a password.
+ */
+bool event_is_secret(const char *line)
+{
+	char word[16];
+
+	if (line == NULL) return false;
+	line = parse_word(line, word, sizeof word - 1);
+	string_to_lowercase(word);
+	if (string_is(word, "set")) {
+		parse_word(line, word, sizeof word - 1);
+		string_to_lowercase(word);
+	}
+	return string_is(word + strspn(word, "-"), "ggs-password");
 }
 
 void event_wait_enter(Event *event)

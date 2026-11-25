@@ -6,6 +6,8 @@ This fixed version is designed so that a book of tens to hundreds of millions of
 
 The figures are measurements from the test records (`docs/validation/`). **Each figure comes from one PC and one book; it is not a prediction for other environments.** Unless stated otherwise, the measurements were taken under Windows on a Ryzen 9 9950X (32 logical CPUs), with a book of level 18 and depth 40 (about 660 million positions, a file of about 29 GB).
 
+**The figures of this chapter were measured with the C version (Edax 4.5.5 nikque), not with Heath.** For example, the peak of 33.4 GB of `book deviate2 5 5` is that of v4.5.5-nikque.13 (32 threads, level 18). Heath keeps a book position in 40 bytes instead of 48 (C version), so it needs less memory for the book itself; Heath was not measured on this book.
+
 ## 9.1 Memory
 
 | What | Size |

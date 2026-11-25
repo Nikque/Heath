@@ -6,9 +6,9 @@
  * Build (Windows, Visual Studio x64 command prompt). The import library libedax-x64.lib is made with
  * the dll by tests\build-libedax-test.cmd (in tests\libedax); a program can also load the dll at run
  * time (LoadLibrary, or the foreign function interface of its language) and needs no import library:
- *   cl /utf-8 /I..\src libedax_example.c libedax\libedax-x64.lib
- * Build (Linux): gcc -I../src libedax_example.c -L. -l:libedax-x86-64.so -Wl,-rpath,'$ORIGIN' -o libedax_example
- * Build (macOS): clang -I../src libedax_example.c libedax.universal.dylib -Wl,-rpath,@loader_path -o libedax_example
+ *   cl /utf-8 /I..\src\api libedax_example.c libedax\libedax-x64.lib
+ * Build (Linux): gcc -I../src/api libedax_example.c -L. -l:libedax-x86-64.so -Wl,-rpath,'$ORIGIN' -o libedax_example
+ * Build (macOS): clang -I../src/api libedax_example.c libedax.universal.dylib -Wl,-rpath,@loader_path -o libedax_example
  *
  * Run it where data/eval.dat is (the folder bin of the release), with the library next to the program.
  *
