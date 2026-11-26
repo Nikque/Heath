@@ -8,10 +8,11 @@ For the details of changes taken from the C version, see the [C release notes](h
 
 ## Relation to the C versions
 
-Each version contains all changes of the C versions on the same row.
+The table lists corresponding releases. Fixes to shared functionality are carried into the respective implementation.
 
 | Heath (newedax) | C (nikque) | C (eval2) |
 |---|---|---|
+| heath.21 | nikque.34 | eval2.21 |
 | heath.20 | nikque.33 | eval2.20 |
 | heath.20-pre1 | nikque.33-pre1 | eval2.20-pre1 |
 | heath.19 | nikque.32 | eval2.19 |
@@ -38,13 +39,57 @@ Each version contains all changes of the C versions on the same row.
 
 ## v4.5.5-heath.21
 
-This maintenance release fixes search, books, game-file handling and protocols. The 64-slot and 48-slot builds continue to use their respective evaluation weights.
+This maintenance release retains the respective evaluation weights for the 64-slot and 48-slot builds.
 
-- Search cancellation and the transition out of pondering were tightened. In libedax, `edax_stop` takes effect just before the next hint or benchmark search starts. Completed hints are retained. A call for the next hint returns `LIBEDAX_NOMOVE` if cancelled, and interrupted benchmark positions are excluded from its totals.
-- When resuming learning, `book learn` checks the game file and its processed lines against the saved book. If the progress cannot be written, the engine invalidates it and saves to `.store`. If it cannot invalidate the old progress, it keeps the previous `.store` and tries to save to `.store.recovery` instead.
-- Incomplete SGF and GGF games are detected, and TXT files can be read back from arbitrary starting boards. SGF and TXT support a UTF-8 BOM. Later valid TXT games can still be extracted after a malformed line. Operations that would replace a file refuse an incomplete input.
-- Fixed in-place OBF filtering, PGN results for games that start with White, GTP, XBoard, NBoard and GGS behavior, evaluation tools and regression tests.
-- Saving a `.old` or `.damaged` backup prefers exclusive operations. On filesystems that lack them, the engine checks whether the name is free before renaming. Another process can race with that check.
+### Search and libedax
+
+- Search stops requested immediately before the search starts are retained. Pondering is stopped before the next game resets its search state. Parallel searches synchronize access to their shared bounds, recheck the window before starting a child search, and synchronize the completion of lazy helpers. Transposition-table reads use relaxed atomics for the fields read outside the write lock.
+- Changing the thread count rebuilds the link to task zero and accepts the maximum supported thread count. The GGS transition back to one game retains a task for the second search. A numeric lazy setting no longer starts helpers when the move list is restricted.
+- Equal aspiration bounds are widened. Stable-disc bounds narrow a search window when the two ranges overlap. Invalid or non-finite ProbCut depth settings fall back to the default, and probes outside the usable depth range are skipped.
+- A book hit is recorded only when a legal book move is available. The Roxane move generator now handles the four centre squares using the generic flip routine.
+- In libedax, a stop just before a hint or benchmark search starts is retained. A cancelled hint keeps only completed results. Asking for the next hint returns `LIBEDAX_NOMOVE`. Interrupted benchmark positions are excluded from the totals.
+
+### Opening books
+
+- New books initialize the saved statistics, pending work and display settings. Serial and parallel `book negamax` mark the book for saving when stored values, bounds or statistics change. If adding a child fails, the link to that child is removed.
+- `book fix` reserves space before moving positions into their canonical buckets. If that reservation fails, it reports the incomplete repair and still removes links to absent positions, checking all eight symmetries before discarding a link.
+- `book learn` checks the game filename and previously processed lines against a fingerprint covering the saved boards, links, scores, bounds, statistics and marks. Old progress without sufficient identity is ignored with a warning. A read error leaves progress available for a later run.
+- If progress cannot be written before saving, the engine invalidates the old `.learn` progress and warns before updating `.store`. If necessary, `.learn.invalid` prevents stale progress from being reused on restart. If neither the marker nor removal is possible, it preserves the prior `.store` and tries `.store.recovery`.
+- Book loading recognizes a continuation only for the expected suffixes. An unrelated file with the same prefix does not acquire that status. If a protected filename or failed-load marker cannot be retained, the engine stops the relevant automatic save or replacement. The second pass of a merge checks the input's checksum, length and position count and rolls back added positions if the input changed. A failed replacement restores the old book when it can be put back.
+- Text writes are checked through stream close before replacement. Backups such as `.old` and `.damaged` prefer exclusive rename or link operations. The fallback checks that the destination is absent before renaming. Another process can create that name during the gap.
+- Book analysis reports overlong arguments and setup failures with the request ID. It reads queued positions at the correct width on 32-bit systems and retries game-count calculation after temporary allocation failure.
+- `book load` reports `@load ok=`. Automatic book saves on exit report `@save ok=` and return a failure exit status if the save fails. Settings show book depth and format independently.
+
+### Game files, OBF and opening names
+
+- SGF and GGF readers detect games cut short. SGF reads the first variation, round-trips custom starting positions and turns through `AB`, `AW` and `PL`, and supports a UTF-8 BOM. GGF checks move colours and explicit passes, accepts omitted forced passes, and checks date fields. NBoard applies a game only after it is fully validated.
+- TXT game files can use a UTF-8 BOM and round-trip a custom starting board and turn. Extraction can continue past a malformed line. Operations such as `base correct` preserve the existing output when the input is incomplete. Game hashes are recomputed after moves are supplemented or replaced.
+- PGN uses the score from Black's perspective even when White starts, and writes `*` for unfinished games. PGN numerical fields are checked. OBF and FEN exports use the actual starting board, starting turn and forced passes.
+- WThor append preserves the stored year and depth. WThor diagnostics handle out-of-range depth and use the actual number of empty squares for search settings. Companion filenames are checked before use.
+- OBF checks board validity before searching. Selection uses an exclusively created temporary file beside the destination and closes both streams before replacing the destination, including in-place selection and file aliases. Input and output failures return a nonzero CLI status or an `ERROR` line in the prompt, where later commands remain available. Results keep the full input path and include wrong scores even when the best move is correct.
+- Duplicate opening lines are removed from same-name lookup, which supports `name #n`. Multiple names for a single position are displayed together.
+
+### Protocols
+
+- Input handling preserves a final line without a newline and gives Cassio sole ownership of input after a protocol switch. Thread-start and event-allocation failures are diagnosed. Cassio preserves stop requests across event and search-state transitions and keeps the search window non-empty.
+- GTP validates every `time_settings` field and converts seconds with a wide integer. `reg_genmove` restores the board, turn, clocks and book random state, so a trial does not change the subsequent book choice.
+- XBoard `playother` takes the side opposite the current turn. `go` after game over reports only the result. Leaving analysis returns to the command loop, and quit or EOF exits both loops.
+- GGS checks whose turn it is, processes complete lines at disconnect, discards an unterminated fragment and exits. Authentication values are masked in command logs, settings and diagnostics. The console `count` command accepts 6×6 and 8×8 boards.
+
+### Evaluation and tools
+
+- The engine distinguishes the 64-slot and 48-slot weight layouts. A 48-slot build refuses weights with nonzero omitted groups. Legacy eval2 weights retain the existing warning-and-load behavior. Format-2 coefficients are checked for finite values and excessive error terms. Conversion writes through an exclusive temporary file and preserves the old destination if it fails.
+- `eval_builder` maps 12-square patterns to the correct coefficient table, keeps training scores signed, validates passes, compares coefficients when only one side is zero, and fails on a read error partway through a game file.
+- `evsearch` and `evtrain` fail before writing a model when required inputs contain no usable records. Calibration requires validation data for each relevant stage. Record readers check file boundaries, short reads and counts, and learning reduces only the threads actually started by OpenMP. The engine and evsearch return a failing exit status for unknown options.
+- `gen`, `pcsigma`, `leafgen` and `playout` validate input records and boards before handing them to search. `sample` bounds allocations by the available records. Sampling and labelling validate large counts, and labelling synchronizes its progress counter.
+- The evaluation tools reject truncated format-1 weights and extra data. `w2dat2` checks interpolation paths, combines both mobility terms and rounds and clamps to the 16-bit range. `sprepair` uses an exclusive temporary output. The 64-slot table check validates the production layout without overwriting it with the experimental table.
+
+### Build, tests and documentation
+
+- The flip-table generators build with MSVC, return failure on write or close errors, and generate files where `make code` actually includes them. The standalone move-generation harness compares legal moves and flips with an independent implementation. Benchmark counters and empty/single-value histograms are handled without overflow or division by zero.
+- Regression tests exercise stop, search windows, input and save behavior. The stable-disc test uses reference scores for 1,024 windows and can independently recompute those scores. The exact FFO checker rejects duplicate result rows and score bounds. Restart tests require a successful exit and use EOF to finish the queued commands. DLL compatibility mode is opt-in, and evaluation-tool tests fail when required or explicitly requested checks are skipped.
+- Release automation checks named artifacts and their build provenance and validates the evaluation pattern definitions, coefficients, checksum and file end before packaging. The CI and QEMU checks verify solved positions and surface command failures. Benchmark and comparison scripts reject missing tools and failed or empty runs.
+- The manuals explain the Windows and Android public ZIPs, CPU requirements, evaluation weights, book formats and text progress files, and supported game-file round trips. Published memory figures now cite the measured configuration. The source-restructuring tool refuses trees already in the current layout.
 
 [Validation record](docs/validation/newedax.en.md#v455-heath21)
 
