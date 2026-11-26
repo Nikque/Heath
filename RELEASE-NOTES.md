@@ -41,6 +41,8 @@ The table lists corresponding releases. Fixes to shared functionality are carrie
 
 This maintenance release retains the respective evaluation weights for the 64-slot and 48-slot builds.
 
+The original 64-slot ZIP uses PGO for the standard and v3 Windows x64 engines. The supplemental `edax-4.5.5-heath.21-64-pgo.zip` also uses PGO for v4 and includes the expanded release notes in both languages. The supplemental 48-slot `edax-4.5.5-heath.21-48-docs1.zip` updates only the release notes.
+
 ### Search and libedax
 
 - Search stops requested immediately before the search starts are retained. Pondering is stopped before the next game resets its search state. Parallel searches synchronize access to their shared bounds, recheck the window before starting a child search, and synchronize the completion of lazy helpers. Transposition-table reads use relaxed atomics for the fields read outside the write lock.
