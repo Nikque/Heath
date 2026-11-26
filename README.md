@@ -51,8 +51,13 @@ Builds other than MSVC on Windows (Android: compiled and linked, not run on a de
 
 - Boost 1.92 (headers only) in `../third_party/boost_1_92_0`, or set `BOOST_DIR=<directory>`.
 - Windows (Visual Studio 2022, x64 Developer Command Prompt): `build-win-v4.cmd`, or in `src`: `nmake -f NMakefile vc-x64-v3` (other targets and PGO builds: `src/NMakefile`).
-- Release binaries: `tools/port/build-release.cmd <checkout> <log directory>`. It builds `wEdax-x86-64-v4.exe` and the 3 DLLs without PGO. In the v4.5.5-heath.21 ZIPs, replaced on 2026-11-26, these are PGO builds too: `-v4` with the same profile as the other 4 executables, the DLLs trained with `bench 20` and the API tests of `tests/libedax_test.c`. `src/NMakefile` has no PGO target for the DLLs.
-- Release ZIP: `python package-release.py <zip> --slots 64|48 --eval <eval.dat>`. `--slots` is the slot count of the binaries; `--eval` is the `eval.dat` put in the ZIP. The script checks that this `eval.dat` holds the weights of that slot count.
+- Release binaries: `tools/port/build-release.cmd <checkout> <log directory> <64|48> <eval.dat>`. It builds the 5 Windows x64 and x86 executables and the 3 DLLs with PGO (`vc-pgo-*` and `vc-pgo-lib-*` of `src/NMakefile`).
+  - `<64|48>` is the slot count (`EVAL_SLOTS`). The profile runs read `<eval.dat>`: give the `eval.dat` of that slot count.
+  - The executables are trained with `-solve problem/fforum-20-39.obf` and 4 games at level 18, each run its own process. The DLLs are trained with `bench 20` and the API tests of `tests/libedax_test.c`.
+  - Each program is recorded in `bin/pgo-build.txt` of the checkout (its SHA-256, the commit, the slot count and the SHA-256 of `<eval.dat>`).
+- Release ZIP: `python package-release.py <zip> --slots 64|48 --eval <eval.dat> [--pgo DIR]`. `--slots` is the slot count of the binaries; `--eval` is the `eval.dat` put in the ZIP. The script checks that this `eval.dat` holds the weights of that slot count.
+  - It takes the Windows x64 and x86 programs from `bin/` (or `--pgo DIR`) and the other programs from the workflow artifacts (`wEdax-arm64.exe` without PGO).
+  - It stops when a Windows x64 or x86 program is not a PGO build recorded in `pgo-build.txt` with the same commit, slot count and `eval.dat`.
 - Android: NDK r27d, `ndk-build`.
 
 Port records (in Japanese): [docs/port](docs/port).
@@ -112,9 +117,16 @@ Windows の MSVC 以外でのビルド（Android はリンクまで、実機で�
 
 ### ビルド
 
-上の英語の「Build」を見てください。配布の ZIP は `python package-release.py <zip> --slots 64|48 --eval <eval.dat>` で作ります。`--slots` は実行ファイルの枠の数、`--eval` は ZIP に入れる `eval.dat` で、スクリプトはこの `eval.dat` がその枠の数の重みかを確かめます。移植の作業記録は [docs/port](docs/port) にあります。
+上の英語の「Build」を見てください。配布の ZIP は `python package-release.py <zip> --slots 64|48 --eval <eval.dat> [--pgo DIR]` で作ります。`--slots` は実行ファイルの枠の数、`--eval` は ZIP に入れる `eval.dat` で、スクリプトはこの `eval.dat` がその枠の数の重みかを確かめます。移植の作業記録は [docs/port](docs/port) にあります。
 
-配布の実行ファイルを作る `tools/port/build-release.cmd` は、`wEdax-x86-64-v4.exe` と DLL 3 本を PGO なしでビルドします。2026-11-26 に差し替えた v4.5.5-heath.21 の ZIP では、これらも PGO 版です。`-v4` はほかの 4 本と同じプロファイル、DLL は `tests/libedax_test.c` の `bench 20` と API のテストで学習しました。DLL の PGO の対象は `src/NMakefile` にありません。
+配布の実行ファイルは `tools/port/build-release.cmd <checkout> <log directory> <64|48> <eval.dat>` で作ります。
+
+- Windows の x64・x86 の実行ファイル 5 本と DLL 3 本を、すべて PGO でビルドします（`src/NMakefile` の `vc-pgo-*` と `vc-pgo-lib-*`）。
+- `<64|48>` は枠の数（`EVAL_SLOTS`）です。プロファイルを取る実行は `<eval.dat>` を読みます。その枠の数の `eval.dat` を渡してください。
+- 実行ファイルは `-solve problem/fforum-20-39.obf` と level 18 の 4 局で学習します。2 つの実行は、別々のプロセスで順に流します。DLL は `bench 20` と `tests/libedax_test.c` の API のテストで学習します。
+- できたプログラムは、checkout の `bin/pgo-build.txt` に記録されます（SHA-256、コミット、枠の数、`<eval.dat>` の SHA-256）。
+- `package-release.py` は、Windows の x64・x86 のプログラムを `bin/`（または `--pgo DIR`）から、ほかのプログラムをワークフローの成果物から取ります（`wEdax-arm64.exe` は PGO なし）。
+- Windows の x64・x86 のプログラムが、`pgo-build.txt` に同じコミット・枠の数・`eval.dat` で記録された PGO 版でないときは、ZIP を作らずに止まります。
 
 ### ライセンス
 

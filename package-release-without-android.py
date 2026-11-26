@@ -2,6 +2,7 @@
 
 Usage: python package-release-without-android.py output.zip --slots 64 --eval path/to/64/eval.dat
    or: python package-release-without-android.py output.zip --slots 48 --eval path/to/48/eval.dat
+The other options (--pgo, --artifacts, --without-macos) are those of package-release.py.
 Uses the normal package checks, layout and permissions. No old Android files
 are substituted for the binaries that could not be rebuilt.
 """
