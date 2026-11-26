@@ -168,7 +168,7 @@ def t_missing_files(a, d):
     res = []
     for name, cmd in cases:
         if not os.path.exists(cmd[0]):
-            continue
+            return False, f'missing executable: {cmd[0]}'
         rc, out = run(cmd, d, timeout=60)
         res.append((name, rc, out.strip()[-60:]))
     return all(rc == 1 for _, rc, _ in res), repr(res)
@@ -572,9 +572,11 @@ def main():
     k32.SetErrorMode(0x8003)	# a tool that crashes exits (no error dialog); inherited by the tools run
     a.tool = lambda t: os.path.join(a.exe, t + '.exe')
     want = set(a.tests.split(',')) if a.tests else None
+    if want and want - {t.__name__[2:] for t in TESTS}:
+        ap.error("unknown tests: " + ", ".join(sorted(want - {t.__name__[2:] for t in TESTS})))
     import compare_c	# the inputs made from the data of ev (A_head.dat, spbroken, leafdata, ...) in the work directory
     compare_c.prepare(a)
-    failed = 0
+    failed = ran = skipped = 0
     for t in TESTS:
         name = t.__name__[2:]
         if want and name not in want:
@@ -589,10 +591,16 @@ def main():
         except Exception as e:	# a test that cannot run fails; the others still run
             ok, detail = False, f'{type(e).__name__}: {e}'
         status = 'skipped' if ok is None else 'ok' if ok else 'FAILED'
+        ran += ok is not None
         failed += ok is False
+        skipped += ok is None
         print(f'{name:22s} {status:7s} ({time.time() - t0:5.1f} s)  {detail[:400]}', flush=True)
-    print(f'tests failed: {failed}')
-    return 1 if failed else 0
+    print(f'tests run: {ran}; skipped: {skipped}; failed: {failed}')
+    if not ran:
+        print('No tests ran.')
+    if want and skipped:
+        print('One or more explicitly requested tests were skipped.')
+    return 1 if failed or not ran or (want and skipped) else 0
 
 
 if __name__ == '__main__':

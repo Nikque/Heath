@@ -42,6 +42,8 @@
 #if defined(__linux__)
 
 #include <sys/sysinfo.h>
+#include <fcntl.h>
+#include <sys/syscall.h>
 #include <sched.h>
 
 #endif // __linux__
@@ -303,18 +305,20 @@ static const unsigned int lib_code_page[2] = {CP_UTF8, CP_ACP};
 static BOOL lib_move_file(const char *from, const char *to, const DWORD flags)
 {
 	BOOL r = FALSE;
+	DWORD e = ERROR_NOT_ENOUGH_MEMORY;
 	int i, missing = 1;
 
 	for (i = 0; i < 2 && missing; ++i) {
 		wchar_t *wfrom = lib_to_wide(from, lib_code_page[i]);
 		wchar_t *wto = lib_to_wide(to, lib_code_page[i]);
 		if (wfrom && wto) {
-			const DWORD e = (r = MoveFileExW(wfrom, wto, flags)) ? ERROR_SUCCESS : GetLastError();
+			e = (r = MoveFileExW(wfrom, wto, flags)) ? ERROR_SUCCESS : GetLastError();
 			missing = (e == ERROR_FILE_NOT_FOUND || e == ERROR_PATH_NOT_FOUND);
 		}
 		free(wfrom);
 		free(wto);
 	}
+	if (!r) SetLastError(e);
 	return r;
 }
 
@@ -396,11 +400,33 @@ int file_remove(const char *path)
  */
 bool file_rename(const char *from, const char *to)
 {
-#if defined(LIB_BUILD) && defined(_WIN32)
-	return lib_move_file(from, to, 0) != 0;
-#elif defined(_WIN32)
-	return MoveFileExA(from, to, 0) != 0;
+#if defined(_WIN32)
+#if defined(LIB_BUILD)
+	if (lib_move_file(from, to, 0)) return true;
 #else
+	if (MoveFileExA(from, to, 0)) return true;
+#endif
+	const DWORD e = GetLastError();
+	errno = e == ERROR_ALREADY_EXISTS || e == ERROR_FILE_EXISTS ? EEXIST : EIO;
+	return false;
+#else
+#if defined(__linux__) && !defined(__ANDROID__) && defined(SYS_renameat2)
+	// RENAME_NOREPLACE is the Linux kernel flag with value 1.
+	if (syscall(SYS_renameat2, AT_FDCWD, from, AT_FDCWD, to, 1U) == 0) return true;
+	if (errno != ENOSYS && errno != EINVAL && errno != ENOTSUP && errno != EOPNOTSUPP) return false;
+#elif defined(__APPLE__)
+	if (renamex_np(from, to, RENAME_EXCL) == 0) return true;
+	if (errno != ENOSYS && errno != EINVAL && errno != ENOTSUP && errno != EOPNOTSUPP) return false;
+#endif
+	// Prefer an exclusive hard link where supported. If unlink fails, leave both names.
+	if (link(from, to) == 0) return unlink(from) == 0;
+	if (errno != ENOSYS && errno != EINVAL && errno != ENOTSUP && errno != EOPNOTSUPP
+		&& errno != EPERM && errno != EXDEV && errno != EMLINK) return false;
+
+	// Filesystems without either exclusive operation use a checked rename.
+	struct stat destination;
+	if (lstat(to, &destination) == 0) { errno = EEXIST; return false; }
+	if (errno != ENOENT) return false;
 	return rename(from, to) == 0;
 #endif
 }

@@ -32,7 +32,7 @@ To check that `book learn` can be resumed wherever it stops, build `tests/book-l
 
 To check Cassio's input thread, including EOF immediately after a command with
 no final newline, run `python tests/cassio-eof.py bin/wEdax-x86-64-v4.exe`.
-Use `--cwd bin` if the executable is elsewhere and `bin/data/eval.dat` is used.
+Use `--cwd <directory>` for a working directory containing the Heath release weight at `data/eval.dat`. The repository’s `bin/data/eval.dat` contains eval2 weights.
 The same test accepts a Linux executable and needs only Python's standard library.
 
 To check the standard input and the protocols (a last line without a newline, the line `@save ok=<0|1> file=<book>` of the save of the book at the end and the exit code 1 when it fails, the switch to Cassio with `engine-protocol init`, XBoard `go` on a finished game and `analyze`/`exit`, and a GGS login against a local test server: the password is neither printed nor logged, and Edax ends when the server closes the connection), run `python tests/protocol-io.py bin/wEdax-x86-64-v4.exe` (one thread, a few seconds, the same `--cwd` option). The regression cases `gtpclock` (`time_settings` up to 2147483647 s, out-of-range values keep the clock), `gtpregpass` (`reg_genmove` with a forced pass keeps the game) and `ggsturn` (a GGS board update with a bad player on turn keeps the game) cover the rest.
@@ -55,3 +55,5 @@ then run `boost_check.exe` (exit code 0). With gcc or clang:
 To check the exact solves against the scores of a problem file (the number of results, the score and the best move of each position), run `python tests/check-solve.py <executable> problem/fforum-1-19.obf --cwd bin` (add `--eval <eval.dat of Heath>`; one thread, level 60; exit code 0 all right, 1 a result differs, 2 the program fails or prints fewer results). The workflow `build.yaml` runs it on every system, and checks that it fails on a copy with a wrong score.
 
 `src/app/harness.cpp` compares the legal moves and the flipped discs of the move generator with a slow generator, on the starting position and on random games. It is a program of its own: the commands to build it are at the top of the file (`harness [games]`, exit code 0 when every move is right).
+
+`regression stabwindow 1 --verify-reference` recomputes the 240 stored exact scores with an independent scalar search. The default `stabwindow` checks the same boards and search windows against the stored scores.

@@ -459,7 +459,7 @@ int options_read(const char *option, const char *value)
 	}
 
 	if (read) {
-		info("<set option %s %s>\n", option, value);
+		info("<set option %s %s>\n", option, strcmp(option, "ggs-password") == 0 ? "(password)" : value);
 	}
 
 	return read;
@@ -684,6 +684,18 @@ void options_bound(void)
 		tmp = options.alpha;
 		options.alpha = options.beta;
 		options.beta = tmp;
+	}
+
+	if (options.alpha == options.beta) { // (an empty window: the search needs alpha < beta)
+		fprintf(stderr, "WARNING: alphabeta [%d, %d] is empty: ", options.alpha, options.beta);
+		if (options.beta < SCORE_MAX) ++options.beta; else --options.alpha;
+		fprintf(stderr, "[%d, %d] is used.\n", options.alpha, options.beta);
+	}
+
+	// probcut-d: the depth of the probe, 2 * floor(probcut_d * depth) + (depth & 1), must be below the depth of the search
+	if (!(options.probcut_d >= 0.0 && options.probcut_d < 0.5)) {
+		warn("probcut-d %g is out of [0, 0.5): 0.25 is used\n", options.probcut_d);
+		options.probcut_d = 0.25;
 	}
 
 	if (options.name == NULL) options.name = string_duplicate(EDAX_NAME);

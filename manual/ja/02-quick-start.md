@@ -38,27 +38,11 @@ Cannot open data/eval.dat
 
 このマニュアルの内容は、ターミナルから起動して確認しました。
 
-### Linux・macOS
+### Linux・macOS・Windows ARM64
 
-ターミナルで `bin` に移動して、実行ファイルを起動します。展開した直後に実行できないと表示されたら、実行権限を付けます。
+これらの環境では [C 版の配布物](https://github.com/Nikque/edax-reversi-AVX/releases)を選んでください。起動方法はその ZIP のマニュアル第2章にあります。
 
-```
-cd edax/bin
-chmod +x lEdax-x86-64
-./lEdax-x86-64
-```
-
-macOS の実行ファイルは `mEdax-arm64`（Apple シリコン）か `mEdax-x64-modern`（Intel）です。
-
-```
-cd edax/bin
-chmod +x mEdax-arm64
-./mEdax-arm64
-```
-
-Heath の Release の ZIP には、Linux・macOS の実行ファイルは入っていません。これらの OS では C 版（[edax-reversi-AVX の Releases](https://github.com/Nikque/edax-reversi-AVX/releases)）を使ってください。
-
-配布の ZIP から Linux・macOS で起動する手順は、このマニュアルの作成では試していません。Linux 版の動作は、ソースからビルドしたもので確認しています。
+Linux での動作確認の記録は、ソースからビルドした実行ファイルによるものです。このマニュアルの作成時には、Linux・macOS で配布 ZIP から起動する手順は試していません。
 
 ## 2.3 最初の画面
 

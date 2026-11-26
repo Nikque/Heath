@@ -61,6 +61,7 @@ static void load_ply(int q, double c, Set *train, Set *test)
 		char name[1024];
 		evtool::xname(name, "%s/%s%02d.bin", src[d].dir, src[d].prefix, q);
 		FILE *f = fopen(name, "rb");
+		if (!f && errno != ENOENT) evtool::die("cannot open %s", name);
 		if (!f) continue;	// (a source may have no file for a ply: main checks that each trained ply has training records)
 		const long long n = rec_count(f, name);
 		// keep 1 in 'keep' training samples to respect the maximum (deterministic by hash)
@@ -77,6 +78,7 @@ static void load_ply(int q, double c, Set *train, Set *test)
 				else if (w > 0 && mix64(h ^ 0x1234567ULL) <= thr) set_push(train, buf + i, w);
 			}
 		}
+		if (done != n) evtool::die("record count changed while reading %s", name);
 		free(buf);
 		fclose(f);
 	}
@@ -242,7 +244,11 @@ int main(int argc, char **argv)
 				w[i] = v / 128.0;
 			}
 		}
-		if (calib >= 0 && test[calib].n) {	// shift the constant weight so that the bias on source 'calib' is 0
+		if (calib >= 0 && !test[calib].n) {
+			fprintf(stderr, "no calibration records for ply %d\n", ply);
+			exit(1);
+		}
+		if (calib >= 0) {	// shift the constant weight so that the bias on source 'calib' is 0
 			double b;
 			errors(test + calib, w, &b, &b, &b);
 			const double v = e->w[ply][ET_NW - 1] - floor(b * 128 + 0.5);

@@ -35,27 +35,11 @@ Use either method:
 
 The checks for this manual were made by starting Edax from a terminal.
 
-### Linux and macOS
+### Linux, macOS and Windows on ARM64
 
-In a terminal, change to `bin` and run the executable. If the system refuses to run it right after extraction, make it executable.
+Download the [C release](https://github.com/Nikque/edax-reversi-AVX/releases) for your platform. Follow chapter 2 of the manual in that ZIP to start the engine.
 
-```
-cd edax/bin
-chmod +x lEdax-x86-64
-./lEdax-x86-64
-```
-
-On macOS, the executable is `mEdax-arm64` (Apple silicon) or `mEdax-x64-modern` (Intel):
-
-```
-cd edax/bin
-chmod +x mEdax-arm64
-./mEdax-arm64
-```
-
-The release ZIPs of Heath hold no Linux nor macOS executable: on these systems, use the C version ([edax-reversi-AVX releases](https://github.com/Nikque/edax-reversi-AVX/releases)).
-
-Starting the Linux or macOS executables from the package ZIP was not tested for this manual. The behaviour of the Linux version was checked with builds from the source.
+The recorded Linux check used an executable built from source. Starting a packaged executable on Linux or macOS was not tested for this manual.
 
 ## 2.3 The first screen
 

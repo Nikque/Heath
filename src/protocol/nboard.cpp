@@ -173,11 +173,7 @@ void ui_loop_nboard(UI *ui)
 		} else if (string_is(cmd, "game")) {
 			Game game;
 			Board board;
-			int lastmove = parse_ggf(&game, param);
-			if (lastmove >= 0) {
-				game_get_board(&game, 60, &board);
-				if (lastmove == PASS)	// https://github.com/okuhara/edax-reversi-AVX/issues/1
-					board_pass(&board);
+			if (parse_ggf_board(&game, param, &board) >= 0) {
 				// the position pondered: the pondering goes on (the next "go" continues its search)
 				const bool pondered = (play->state == IS_PONDERING && board_equal(&board, &play->ponder.board));
 				if (!pondered) play_stop_pondering(play);

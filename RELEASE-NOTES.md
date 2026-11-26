@@ -36,6 +36,20 @@ Each version contains all changes of the C versions on the same row.
 
 ---
 
+## v4.5.5-heath.21
+
+This maintenance release fixes search, books, game-file handling and protocols. The 64-slot and 48-slot builds continue to use their respective evaluation weights.
+
+- Search cancellation and the transition out of pondering were tightened. In libedax, `edax_stop` takes effect just before the next hint or benchmark search starts. Completed hints are retained. A call for the next hint returns `LIBEDAX_NOMOVE` if cancelled, and interrupted benchmark positions are excluded from its totals.
+- When resuming learning, `book learn` checks the game file and its processed lines against the saved book. If the progress cannot be written, the engine invalidates it and saves to `.store`. If it cannot invalidate the old progress, it keeps the previous `.store` and tries to save to `.store.recovery` instead.
+- Incomplete SGF and GGF games are detected, and TXT files can be read back from arbitrary starting boards. SGF and TXT support a UTF-8 BOM. Later valid TXT games can still be extracted after a malformed line. Operations that would replace a file refuse an incomplete input.
+- Fixed in-place OBF filtering, PGN results for games that start with White, GTP, XBoard, NBoard and GGS behavior, evaluation tools and regression tests.
+- Saving a `.old` or `.damaged` backup prefers exclusive operations. On filesystems that lack them, the engine checks whether the name is free before renaming. Another process can race with that check.
+
+[Validation record](docs/validation/newedax.en.md#v455-heath21)
+
+---
+
 ## v4.5.5-heath.20
 
 The release of v4.5.5-heath.20-pre1 with a better search and lazy auto. The time of a move and the probcut change. In games of one thread, the changes of the search won more discs than the search before (see Strength).
@@ -136,7 +150,7 @@ The exact endgame search is faster. The change is the same as in [v4.5.5-nikque.
 
 **Speed**
 
-- At 5 and 6 empty squares, a quadrant's only empty square is played first, and a small thread-local transposition table (2^14 entries) is probed. 
+- At 5 and 6 empty squares, a quadrant's only empty square is played first, and a small thread-local transposition table (2^14 entries) is probed. The idea comes from KUROOBI (MIT).
 - With one thread, exact solves of fforum-40-59 take 98.2% of the time (505.2 s to 496.2 s: the average of 4 runs each, alternately, on one logical CPU of a Ryzen 9 9950X while other work used every CPU). The positions searched: 90.2% on fforum-40-59 (28.63 to 25.81 billion), 89.0% on fforum-20-39. Every score and best move is the same as in the previous release.
 - The midgame search is unchanged: positions that are not solved search the same number of positions as before.
 

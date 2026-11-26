@@ -34,7 +34,7 @@ For Linux and macOS executables, use the C version ([edax-reversi-AVX releases](
 
 ## Differences from the C version
 
-- **Memory**: a book position takes 40 bytes (48 in the C version). Loading a book of 6.5 million positions takes 11 to 45 % less memory (measured for v4.5.5-newedax.1; the C version compared and the conditions are not in the test records).
+- **Memory**: a book position takes 40 bytes (48 in the C version). For 6.49 million positions, loading and saving with one thread peaked at 364 versus 665 MiB, or 362 versus 408 MiB in the other record order. These reductions range from 11% to 45%. The comparison used nikque.17 and `f8b4d1f`, 45 commits before the newedax.1 tag. [Measurement record](docs/port/MEASURE-1.md)
 - **Settings**: only Heath has `book-format` (the form of the saved books: `1`, `2` or `auto`) and `keep-hash`. Only the C version has `probcut-model`, `pc-slope`, `pc-dev` and `pc-mob`: Heath has the probcut model `refit` and the values of `pc-slope 1.3,12`, `pc-dev 2,0.04,0.75` and `pc-mob 2.219,-0.184,-0.350` built in (since v4.5.5-heath.20). The default of `lazy` is `auto` in Heath, `0` in the C version.
 - **Evaluation files**: each build needs the `eval.dat` of Heath of its slot count (in the release ZIP of that build). The `eval.dat` of eval2 (`bin/data/eval.dat` of the repository) and that of Edax 4.5 are read with a warning, and the evaluation is then wrong.
 - **Strength** (v4.5.5-newedax.13, 64 slots, games without a book from random openings, each played with both colours): +60.2 Elo against eval2 (v4.5.5-newedax.12; one thread each, 30 s a game a side, 1,102 games); +23.2 Elo against Egaroucid (tournament branch, 120 s a game, 8 threads, 180 games). See the [release notes](RELEASE-NOTES.md).
@@ -97,7 +97,7 @@ Linux・macOS 用の実行ファイルは C 版（[edax-reversi-AVX の Releases
 
 ### C 版との違い
 
-- **メモリ**：book の 1 局面が 40 バイト（C 版は 48 バイト）。649 万局面の book の読み込みで、メモリが 11〜45% 少なくなります（v4.5.5-newedax.1 のときの実測。比べた C 版の版と条件は検証記録にありません）。
+- **メモリ**：book の1局面は40バイトです（C版は48バイト）。649万局面を1スレッドで読み込んで保存したとき、最大使用量は665→364 MiB、別の格納順では408→362 MiBでした。削減率は11〜45%です。比較対象は nikque.17 と、newedax.1 のタグより45コミット前の `f8b4d1f` です。[計測記録](docs/port/MEASURE-1.md)
 - **設定**：`book-format`（保存する book の形式。`1`・`2`・`auto`）と `keep-hash` は Heath だけにあります。`probcut-model`・`pc-slope`・`pc-dev`・`pc-mob` は C 版だけにあります。Heath は v4.5.5-heath.20 から、probcut の型 `refit` と、`pc-slope 1.3,12`・`pc-dev 2,0.04,0.75`・`pc-mob 2.219,-0.184,-0.350` の値を作り付けで使います。`lazy` の既定は Heath が `auto`、C 版が `0` です。
 - **評価ファイル**：ビルドには、その枠の数の Heath の `eval.dat`（そのビルドの Release の ZIP のもの）が要ります。eval2 の `eval.dat`（リポジトリの `bin/data/eval.dat`）と Edax 4.5 のものは、警告を出して読みますが、評価が正しくなりません。
 - **強さ**（v4.5.5-newedax.13、64 枠。book なし、ランダムな開始局面から先手・後手を入れ替えて対局）：eval2（v4.5.5-newedax.12）に +60.2 Elo（双方 1 スレッド、1 局 30 秒ずつ、1,102 局）、Egaroucid（大会用の枝、1 局 120 秒、8 スレッド、180 局）に +23.2 Elo。[修正一覧](RELEASE-NOTES.ja.md)を見てください。

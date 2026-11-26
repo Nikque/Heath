@@ -58,9 +58,12 @@ int main(int argc, char **argv)
 
 	// start positions: training split only (hash % 32 != 0, as in evtrain)
 	FILE *f = evtool::xfopen(start, "rb");
-	long long n = evtool::file_size(f) / (long long) sizeof (Rec);
+	long long n = evtool::rec_count(f, start);
+	if (n <= 0 || (unsigned long long)n > SIZE_MAX / sizeof (Rec)) evtool::die("invalid record count in %s", start);
 	Rec *S = (Rec *) evtool::xmalloc(n * sizeof *S);
-	n = (long long) fread(S, sizeof *S, n, f);
+	long long records_read = 0;
+	evtool::rec_read(S, (size_t)n, f, start, &records_read);
+	if (records_read != n || fgetc(f) != EOF || ferror(f)) evtool::die("record count changed while reading %s", start);
 	fclose(f);
 	long long n_train = 0;
 	for (long long i = 0; i < n; ++i) n_train += mix64(S[i].P * 0x9E3779B97F4A7C15ULL ^ S[i].O) % 32 != 0;

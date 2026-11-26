@@ -1,144 +1,27 @@
 #!/usr/bin/env python3
-"""Write src/eval/eval_feature64.h: the feature tables of the 64-slot evaluation (EVAL_SLOTS=64).
+"""Check the production 64-slot feature tables without changing their contents."""
 
-The 48-slot tables of src/eval/eval.cpp (EVAL_FEATURE, EVAL_FEATURE_all_opponent) are read and
-checked against the squares of the features (EVAL_F2X) and their offsets (EVAL_OFFSET); slots 48 to 63
-get the extra pattern groups below.
-
-usage: gen_eval64.py [check]
-  check: only check that eval_feature64.h is the one this script writes (exit 1 if not).
-"""
-
-import pathlib
-import re
+import hashlib
+from pathlib import Path
 import sys
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]
-EVAL = ROOT / 'src' / 'eval' / 'eval.cpp'
-OUT = ROOT / 'src' / 'eval' / 'eval_feature64.h'
-
-NAMES = [c + r for r in '12345678' for c in 'ABCDEFGH']  # A1 = 0, B1 = 1, ..., H8 = 63
-SQ = {n: i for i, n in enumerate(NAMES)}
-
-
-def xy(x):
-    return x % 8, x // 8
-
-
-def at(c, r):
-    return c + 8 * r
-
-
-SYM = {
-    'id': lambda c, r: (c, r),
-    'h': lambda c, r: (7 - c, r),        # mirror A <-> H
-    'v': lambda c, r: (c, 7 - r),        # mirror 1 <-> 8
-    'hv': lambda c, r: (7 - c, 7 - r),
-    't': lambda c, r: (r, c),            # transpose (A1-H8 diagonal)
-    'ht': lambda c, r: (7 - r, c),       # transpose then mirror A <-> H
-}
-
-# Extra pattern groups of the 64-slot evaluation: 4 groups of 9 or 10 squares, 4 places each (slots 48-63).
-EXTRA = [
-    ('edge and inner squares', 'B1 C1 D1 E1 F1 G1 C2 D2 E2 F2', ['id', 'v', 't', 'ht']),
-    ('corners, X squares and diagonals', 'A1 B1 G1 H1 B2 G2 C3 F3 D4 E4', ['id', 'v', 't', 'ht']),
-    ('wall behind the edge', 'B2 C2 D2 E2 F2 G2 C3 D3 E3 F3', ['id', 'v', 't', 'ht']),
-    ('centre 3x3', 'C3 D3 E3 C4 D4 E4 C5 D5 E5', ['id', 'h', 'v', 'hv']),
-]
-
-
-def extra_features():
-    feats = []
-    for _, squares, places in EXTRA:
-        base = [SQ[s] for s in squares.split()]
-        for p in places:
-            feats.append([at(*SYM[p](*xy(x))) for x in base])
-    assert len(feats) == 16
-    for f in feats:
-        assert len(set(f)) == len(f)
-    return feats
-
-
-def c_array(text, name):
-    m = re.search(r'\b' + name + r'\[\]\s*=\s*\{(.*?)\};', text, re.S)
-    return [int(v) for v in re.findall(r'-?\d+', re.sub(r'//[^\n]*', '', m.group(1)))]
+HEADER = Path(__file__).resolve().parents[2] / 'src' / 'eval' / 'eval_feature64.h'
+TABLE_PREFIX = 'static const unsigned char EVAL_X_N'
+TABLE_SHA256 = '9afe8351eb1b13ffa3e96d2b84634aafa2347e192a6434b218a59eb60fc0c32e'
 
 
 def main(argv):
-    text = EVAL.read_text(encoding='utf-8')
-    # EVAL_F2X: the squares of the features
-    m = re.search(r'EVAL_F2X\[\]\s*=\s*\{(.*?)\n\};', text, re.S)
-    f2x = []
-    for n, sq in re.findall(r'\{\s*(\d+),\s*\{([^}]*)\}\}', m.group(1)):
-        f2x.append([SQ[s.strip()] for s in sq.split(',') if s.strip() in SQ][:int(n)])
-    assert len(f2x) == 47, len(f2x)
-    offset = c_array(text, 'EVAL_OFFSET')
-    assert len(offset) == 48
-    # EVAL_FEATURE: 65 rows of 48 values
-    m = re.search(r'const EVAL_FEATURE_V EVAL_FEATURE\[65\] = \{(.*?)\n\};', text, re.S)
-    rows = re.findall(r'\{\{\s*//\s*(\w+)\s*(.*?)\}\}', m.group(1), re.S)
-    table = [[int(v) for v in re.findall(r'\d+', body)] for _, body in rows]
-    assert len(table) == 65 and all(len(r) == 48 for r in table), [len(r) for r in table]
-    m = re.search(r'EVAL_FEATURE_all_opponent = \{\{(.*?)\}\};', text, re.S)
-    all_opp = [int(v) for v in re.findall(r'\d+', re.sub(r'//[^\n]*', '', m.group(1)))]
-    assert len(all_opp) == 48
-
-    # check the 48-slot tables against the squares of the features
-    for i in range(48):
-        squares = f2x[i] if i < 47 else []
-        expect = [0] * 65
-        for j, x in enumerate(squares):
-            expect[x] = 3 ** (len(squares) - 1 - j)
-        got = [table[x][i] for x in range(65)]
-        assert got == expect, ('EVAL_FEATURE', i, got, expect)
-        assert all_opp[i] == sum(expect) + offset[i], ('all_opponent', i)
-
-    extra = extra_features()
-    full = [row + [0] * 16 for row in table]
-    opp = all_opp + [0] * 16
-    for k, squares in enumerate(extra):
-        for j, x in enumerate(squares):
-            full[x][48 + k] = 3 ** (len(squares) - 1 - j)
-        opp[48 + k] = sum(3 ** j for j in range(len(squares)))
-
-    out = ['/**', ' * @file eval_feature64.h', ' *',
-           ' * Feature tables of the 64-slot evaluation (EVAL_SLOTS=64), written by tools/port/gen_eval64.py',
-           ' * from the 48-slot tables of eval.cpp (slots 0-47) and the extra pattern groups (slots 48-63).',
-           ' * Do not edit: run the script again.', ' */', '',
-           '/** extra groups: squares, weights, and what is added to a feature of fewer than 10 squares to index OPPONENT_FEATURE */',
-           'static const unsigned char EVAL_X_N[4] = {' + ', '.join(str(len(e[1].split())) for e in EXTRA) + '};',
-           'static const int EVAL_X_SIZE[4] = {' + ', '.join(str(3 ** len(e[1].split())) for e in EXTRA) + '};',
-           'static const int EVAL_X_BASE[4] = {' + ', '.join(str(0 if len(e[1].split()) == 10 else 19683) for e in EXTRA) + '};',
-           'enum { EVAL_N_X_ALL = ' + str(sum(3 ** len(e[1].split()) for e in EXTRA)) + ' };',
-           '',
-           '/** squares of the extra features (slots 48 to 63) */',
-           'static const unsigned char EVAL_X_SQUARE[16][10] = {']
-    for k, squares in enumerate(extra):
-        out.append('\t{' + ', '.join(NAMES[x] for x in squares) + '},' + ('\t// ' + EXTRA[k // 4][0] if k % 4 == 0 else ''))
-    out.append('};')
-    out.append('')
-    out.append('const EVAL_FEATURE_V EVAL_FEATURE[65] = {')
-    for x in range(65):
-        name = NAMES[x].lower() if x < 64 else 'pass'
-        vals = full[x]
-        lines = ['\t\t' + ', '.join('%5d' % v for v in vals[i:i + 16]) for i in range(0, 64, 16)]
-        out.append('\t{{ // ' + name)
-        out.append(',\n'.join(lines))
-        out.append('\t}}' + (',' if x < 64 else ''))
-    out.append('};')
-    out.append('')
-    out.append('const EVAL_FEATURE_V EVAL_FEATURE_all_opponent = {{')
-    out.append(',\n'.join('\t' + ', '.join('%5d' % v for v in opp[i:i + 16]) for i in range(0, 64, 16)))
-    out.append('}};')
-    data = '\n'.join(out) + '\n'
-
-    if argv[1:] == ['check']:
-        same = OUT.exists() and OUT.read_text(encoding='utf-8') == data
-        print('eval_feature64.h', 'is up to date' if same else 'differs')
-        return 0 if same else 1
-    OUT.write_bytes(data.encode('utf-8'))
-    print('48-slot tables checked; wrote', OUT)
-    return 0
+    if argv[1:] != ['check']:
+        print('製品用の評価表は上書きしません。検査には check を指定してください。', file=sys.stderr)
+        return 2
+    try:
+        _, marker, table = HEADER.read_text(encoding='utf-8').partition(TABLE_PREFIX)
+    except OSError as err:
+        print(err, file=sys.stderr)
+        return 1
+    matches = bool(marker) and hashlib.sha256(table.encode('utf-8')).hexdigest() == TABLE_SHA256
+    print('評価表は登録値と一致します。' if matches else '評価表が登録値と異なります。')
+    return 0 if matches else 1
 
 
 if __name__ == '__main__':

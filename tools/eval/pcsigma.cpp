@@ -53,9 +53,12 @@ int main(int argc, char **argv)
 	search_global_init();
 
 	FILE *f = evtool::xfopen(in, "rb");
-	long long n = evtool::file_size(f) / (long long) sizeof (Rec);
+	long long n = evtool::rec_count(f, in);
+	if (n <= 0 || (unsigned long long)n > SIZE_MAX / sizeof (Rec)) evtool::die("invalid record count in %s", in);
 	Rec *R = (Rec *) evtool::xmalloc(n * sizeof *R);
-	n = (long long) fread(R, sizeof *R, n, f);
+	long long done = 0;
+	evtool::rec_read(R, (size_t)n, f, in, &done);
+	if (done != n || fgetc(f) != EOF || ferror(f)) evtool::die("record count changed while reading %s", in);
 	fclose(f);
 	FILE *g = evtool::xfopen(outname, "w");
 

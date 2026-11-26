@@ -517,6 +517,7 @@ static void load(int pi, int ply)
 			char name[1024];
 			evtool::xname(name, "%s/%s%02d.bin", src[d].dir, src[d].prefix, q);
 			FILE *f = fopen(name, "rb");
+			if (!f && errno != ENOENT) evtool::die("cannot open %s", name);
 			if (!f) continue;	// (a source may have no file for a ply: main checks that each ply has training records)
 			const long long n = rec_count(f, name);
 			const double keep = n > src[d].max ? (double) src[d].max / n : 1.0;
@@ -532,6 +533,7 @@ static void load(int pi, int ply)
 					else if (mix64(h ^ 0x1234567ULL) <= thr) push(&train[pi], buf + i, weight);
 				}
 			}
+			if (done != n) evtool::die("record count changed while reading %s", name);
 			free(buf);
 			fclose(f);
 		}

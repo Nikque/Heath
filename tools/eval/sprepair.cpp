@@ -35,8 +35,13 @@ int main(int argc, char **argv)
 		fclose(f);
 		char tmp[1024];
 		evtool::xname(name, "%s/%s%02d.bin", argv[2], argv[3], ply);
-		evtool::xname(tmp, "%s.tmp", name);
-		FILE *g = xfopen(tmp, "wb");
+		FILE *g = nullptr;
+		for (int attempt = 0; attempt < 100; ++attempt) {
+			evtool::xname(tmp, "%s.tmp.%d", name, attempt);
+			g = fopen(tmp, "wbx");
+			if (g || errno != EEXIST) break;
+		}
+		if (!g) die("cannot create temporary output for %s", name);
 		long long pos = 0, kept = 0, skipped = 0;
 		bool ok = true;
 		while (pos + 17 <= n) {

@@ -7,6 +7,7 @@
  */
 #pragma once
 
+#include <cerrno>
 #include <cctype>
 #include <climits>
 #include <cmath>
@@ -166,7 +167,9 @@ inline long long rec_count(FILE *f, const char *file)
  */
 inline size_t rec_read(Rec *buf, size_t max, FILE *f, const char *file, long long *done)
 {
-	const size_t m = fread(buf, sizeof (Rec), max, f);
+	const size_t bytes = fread(buf, 1, max * sizeof (Rec), f);
+	if (bytes % sizeof (Rec)) die("%s ends in a partial record", file);
+	const size_t m = bytes / sizeof (Rec);
 	if (m < max && ferror(f)) die("cannot read %s", file);
 	for (size_t i = 0; i < m; ++i)
 		if (!rec_valid(buf[i])) {
@@ -625,15 +628,23 @@ inline ET_Eval *et_read(const char *file)
 	if (r >= 2 && !(e->edax == 0x45444158 && e->eval == 0x4556414c)) die("%s is not an evaluation file", file);	// "EDAX" "EVAL"
 	r += fread(&e->date, 8, 1, f);
 	int np = 0;
-	while (np < ET_NPLY && fread(e->w[np], 2, ET_NW, f) == ET_NW) ++np;
+	while (np < ET_NPLY) {
+		const size_t bytes = fread(e->w[np], 1, sizeof e->w[np], f);
+		if (bytes == 0 && feof(f)) break;
+		if (bytes != sizeof e->w[np]) die("%s ends in a partial ply", file);
+		++np;
+	}
 	if (np == ET_NPLY) {	// mobility weights of eval2, or not
 		uint32_t tag;
-		if (fread(&tag, 4, 1, f) == 1 && (tag == 0x4d4f4257 || tag == 0x57424f4d)) {
+		const size_t bytes = fread(&tag, 1, 4, f);
+		if (bytes != 0) {
+			if (bytes != 4 || (tag != 0x4d4f4257 && tag != 0x57424f4d)) die("%s has an invalid mobility trailer", file);
 			xfread(e->mob, sizeof (short), (size_t) ET_NPLY * ET_NMOB, f, file);
 			if (tag == 0x57424f4d) for (int p = 0; p < ET_NPLY; ++p) for (int i = 0; i < ET_NMOB; ++i) e->mob[p][i] = (short) ((uint16_t) e->mob[p][i] << 8 | (uint16_t) e->mob[p][i] >> 8);
 			e->has_mob = true;
 		}
 	}
+	if (fgetc(f) != EOF || ferror(f)) die("%s has extra bytes or a read error", file);
 	fclose(f);
 	if (r != 6 || np < 54) { fprintf(stderr, "bad eval file %s (%d plies)\n", file, np); exit(1); }
 	for (; np < ET_NPLY; ++np) memcpy(e->w[np], e->w[np - 1], sizeof e->w[0]);

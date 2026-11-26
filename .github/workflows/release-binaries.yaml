@@ -49,6 +49,9 @@ jobs:
           for f in ${{ matrix.built }}; do cp "bin/$f" dist/; done
       - name: No build folder in the programs
         run: python tests/check-build-paths.py "dist/*"
+      - name: Record the build source
+        shell: bash
+        run: echo "$GITHUB_REPOSITORY $GITHUB_SHA $GITHUB_RUN_ID" > dist/build-id.txt
       - uses: actions/upload-artifact@v4
         with:
           name: release-windows-${{ matrix.arch }}
@@ -84,6 +87,9 @@ jobs:
           done
       - name: No build folder in the programs
         run: python3 tests/check-build-paths.py "dist/*"
+      - name: Record the build source
+        shell: bash
+        run: echo "$GITHUB_REPOSITORY $GITHUB_SHA $GITHUB_RUN_ID" > dist/build-id.txt
       - uses: actions/upload-artifact@v4
         with:
           name: release-linux
@@ -94,6 +100,7 @@ jobs:
           python3 .github/fetch-eval.py t/data/eval.dat && cp bin/libedax-x86-64.so t/
           gcc -O1 -D_GNU_SOURCE tests/libedax_test.c -Lbin -l:libedax-x86-64.so -Wl,-rpath,'$ORIGIN' -ldl -o t/libedax_test
           cd t && ./libedax_test libedax-x86-64.so > libedax_test.log 2>&1 || { cat libedax_test.log; exit 1; }
+          grep -F 'libedax of Edax 4.5.5' libedax_test.log
           grep 'checks,' libedax_test.log
 
   macos-x64:
@@ -115,13 +122,18 @@ jobs:
           cp bin/mEdax-x64-modern dist/
       - name: No build folder in the program
         run: python3 tests/check-build-paths.py "dist/*"
+      - name: Record the build source
+        shell: bash
+        run: echo "$GITHUB_REPOSITORY $GITHUB_SHA $GITHUB_RUN_ID" > dist/build-id.txt
       - uses: actions/upload-artifact@v4
         with:
           name: release-macos-x64
           path: dist/
           if-no-files-found: error
       - name: Test the executable
-        run: cd bin && ./mEdax-x64-modern -n 1 -l 60 -solve ../problem/fforum-1-19.obf
+        run: |
+          python3 .github/fetch-eval.py t/data/eval.dat
+          python3 tests/check-solve.py ./bin/mEdax-x64-modern problem/fforum-1-19.obf --eval t/data/eval.dat
 
   # Apple silicon executable, and the library (libedax) for both kinds of Mac in one file
   macos-arm64:
@@ -147,6 +159,9 @@ jobs:
           cp bin/mEdax-arm64 bin/libedax.universal.dylib dist/
       - name: No build folder in the programs
         run: python3 tests/check-build-paths.py "dist/*"
+      - name: Record the build source
+        shell: bash
+        run: echo "$GITHUB_REPOSITORY $GITHUB_SHA $GITHUB_RUN_ID" > dist/build-id.txt
       - uses: actions/upload-artifact@v4
         with:
           name: release-macos-arm64
@@ -157,8 +172,9 @@ jobs:
           python3 .github/fetch-eval.py t/data/eval.dat && cp bin/libedax.universal.dylib bin/mEdax-arm64 t/
           clang -O1 tests/libedax_test.c t/libedax.universal.dylib -Wl,-rpath,@loader_path -o t/libedax_test
           cd t
-          ./mEdax-arm64 -n 1 -l 60 -solve ../problem/fforum-1-19.obf
+          python3 ../tests/check-solve.py ./mEdax-arm64 ../problem/fforum-1-19.obf --eval data/eval.dat
           ./libedax_test libedax.universal.dylib > libedax_test.log 2>&1 || { cat libedax_test.log; exit 1; }
+          grep -F 'libedax of Edax 4.5.5' libedax_test.log
           grep 'checks,' libedax_test.log
 
   android:
@@ -182,6 +198,9 @@ jobs:
           cp src/libs-lib/arm64-v8a/libedax.so dist/libedax-arm64-v8a.so
       - name: No build folder in the programs
         run: python3 tests/check-build-paths.py "dist/*"
+      - name: Record the build source
+        shell: bash
+        run: echo "$GITHUB_REPOSITORY $GITHUB_SHA $GITHUB_RUN_ID" > dist/build-id.txt
       - uses: actions/upload-artifact@v4
         with:
           name: release-android

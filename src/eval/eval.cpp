@@ -19,6 +19,8 @@
 
 #include <stdlib.h>
 #include <assert.h>
+#include <limits.h>
+#include <cmath>
 
 #if !defined(VECTOR_EVAL_UPDATE) && !defined(hasSSE2) && !defined(__ARM_NEON)
 
@@ -706,6 +708,13 @@ static void eval_file_header_read(FILE *f, const char *file, EvalFileHeader *h)
 		memcpy(&n_weights, x + 40, 4);
 		memcpy(&n_group, x + 44, 2);
 		memcpy(h->coefficient, x + 48, sizeof h->coefficient);
+		for (double coefficient : h->coefficient) {
+			if (!std::isfinite(coefficient)) fatal_error("Invalid error coefficient in %s\n", file);
+		}
+		// An upper bound for the absolute evaluation error over the possible depths and empty counts.
+		const double linear = 60 * (std::fabs(h->coefficient[0]) + std::fabs(h->coefficient[1]) + std::fabs(h->coefficient[2]));
+		const double error_bound = (std::fabs(h->coefficient[3]) * linear + std::fabs(h->coefficient[4])) * linear + std::fabs(h->coefficient[5]);
+		if (!(error_bound < INT_MAX / 2.0)) fatal_error("Evaluation error is out of range in %s\n", file);
 		// the pattern groups, then the mobility group or not
 		mobility = size == EVAL2_HEADER_SIZE(n_group) && n_group > 1
 			&& memcmp(x + EVAL2_GROUPS_AT + (n_group - 1) * EVAL2_GROUP_SIZE, EVAL2_MOBILITY_GROUP, EVAL2_GROUP_SIZE) == 0;
@@ -790,7 +799,8 @@ static void eval_file_check_2(FILE *f, const char *file, const EvalFileHeader *h
 bool eval_convert(const char *in, const char *out)
 {
 	EvalFileHeader h;
-	FILE *f, *g;
+	FILE *f, *g = NULL;
+	char *temp = NULL;
 	short *w = NULL, *mob = NULL; // weights: n_plies x n_w; the mobility weights of form 1: 61 x 64
 	long long n_plies = 0, i, here, end;
 	size_t n_w = EVAL_N_PACKED;
@@ -874,8 +884,18 @@ bool eval_convert(const char *in, const char *out)
 		}
 	}
 
-	g = file_open(out, "wb");
-	if (g == NULL) { error("Cannot open %s\n", out); goto convert_end; }
+	ok = !ferror(f);
+	if (fclose(f) != 0 || !ok) { ok = false; error("Cannot finish reading %s\n", in); f = NULL; goto convert_end; }
+	f = NULL;
+	ok = false;
+	temp = (char *)malloc(strlen(out) + 32);
+	if (temp == NULL) { error("Cannot allocate a temporary path\n"); goto convert_end; }
+	for (int attempt = 0; attempt < 100; ++attempt) {
+		sprintf(temp, "%s.saving.%d", out, attempt);
+		g = file_open(temp, "wbx");
+		if (g || errno != EEXIST) break;
+	}
+	if (g == NULL) { error("Cannot create output for %s\n", out); goto convert_end; }
 	if (h.format == 1) { // into form 2
 		unsigned char x[EVAL2_HEADER_SIZE(EVAL2_N_GROUP + 1)] = {};
 		const int groups = EVAL2_N_GROUP + (mobility ? 1 : 0);
@@ -931,12 +951,14 @@ bool eval_convert(const char *in, const char *out)
 			warn("%s: the error coefficients of %s are not kept (form 1 does not hold them)\n", out, in);
 	}
 	if (fclose(g) != 0) ok = false;
-	if (!ok) { error("Cannot write %s\n", out); file_remove(out); }
+	if (ok) ok = file_replace(temp, out);
+	if (!ok) { error("Cannot write %s\n", out); file_remove(temp); }
 
 convert_end:
 	free(w);
 	free(mob);
-	fclose(f);
+	free(temp);
+	if (f) fclose(f);
 	return ok;
 }
 

@@ -4,6 +4,12 @@ Tests and measurements done for each version, moved without changes from the for
 
 For what changed, see the [release notes](../../RELEASE-NOTES.md). "Above" and "below" in the text refer to positions in the former document.
 
+## v4.5.5-heath.21
+
+- Windows tests with synthetic inputs covered game-file import, book learning and resumption, in-place OBF replacement, book backups and protocols.
+- The backup fallback was exercised by injecting unsupported-operation errors into the same implementation. Its behavior on real Linux, macOS and Android filesystems was not tested.
+- Large production books and playing strength were not measured.
+
 ## v4.5.5-heath.20
 
 - This version with no option and the engine of the matches with the five options (`-time-ext 1 -sort-eval-shift 1,0,0 -sort-min-depth 7 -pc-dev 2,0.04,0.75 -pc-mob 2.219,-0.184,-0.350,0,0,0,0,0,0 -pc-slope 1.3,12 -pc-end 0.85`) were compared with one thread. The scores, the nodes and the principal variations were the same, position by position.

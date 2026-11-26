@@ -35,6 +35,7 @@ void play_init(Play *play, Book *book)
 	search_init(&play->search);
 	play->search.stop_pending = &play->stop_pending; // (a stop before the search began: see search_run)
 	play->book = book;
+	play->book_random = &book->random;
 	board_init(&play->initial_board);
 	play->search.options.header = " depth|score|       time   |  nodes (N)  |   N/s    | principal variation";
 	play->search.options.separator = "------+-----+--------------+-------------+----------+----------------------";
@@ -376,7 +377,7 @@ void play_go(Play *play, const bool update)
 			info("\n[Forced move %s]\n\n",  move_to_string(move.x, play->player, s_move));
 		}
 
-	} else if (options.book_allowed && book_get_random_move(play->book, &play->board, &move, options.book_randomness)) {
+	} else if (options.book_allowed && book_get_random_move_with(play->book, &play->board, &move, options.book_randomness, play->book_random)) {
 		play_stop_pondering(play);
 
 		play->result.depth = 0;
@@ -1909,6 +1910,50 @@ static bool learn_progress_write(const char *path, const LearnRecord *r, const c
 	return ok;
 }
 
+static bool learn_progress_blocked(const char *path)
+{
+	char marker[FILENAME_MAX + 16];
+	snprintf(marker, sizeof marker, "%s.invalid", path);
+	FILE *f = file_open(marker, "r");
+	if (!f) return errno != ENOENT;
+	fclose(f);
+	return true;
+}
+
+static bool learn_progress_invalidate(const char *path)
+{
+	char marker[FILENAME_MAX + 16];
+	snprintf(marker, sizeof marker, "%s.invalid", path);
+	FILE *f = file_open(marker, "wx");
+	if (!f) return errno == EEXIST;
+	bool ok = fputs("invalid\n", f) != EOF && fflush(f) == 0;
+#ifdef _WIN32
+	if (ok && _commit(_fileno(f)) != 0) ok = false;
+#else
+	if (ok && fsync(fileno(f)) != 0) ok = false;
+#endif
+	if (fclose(f) != 0) ok = false;
+	return ok;
+}
+
+static void learn_save_without_progress(LearnSaves *s, Book *book, const char *store)
+{
+	const bool marked = learn_progress_invalidate(s->path);
+	s->own = false;
+	if (!marked && file_remove(s->path) != 0 && errno != ENOENT) {
+		char recovery[FILENAME_MAX + 16];
+		snprintf(recovery, sizeof recovery, "%s.recovery", store);
+		if (book_save_progress(book, recovery))
+			warn("cannot invalidate %s; the previous %s was kept and the current book was saved to %s. Remove the old progress before resuming from the recovery book.\n", s->path, store, recovery);
+		else warn("cannot invalidate %s or save recovery book %s; the previous %s was kept\n", s->path, recovery, store);
+		return;
+	}
+	if (!book_save_progress(book, store)) return;
+	if (marked && file_remove(s->path) != 0 && errno != ENOENT)
+		warn("cannot remove stale progress %s; its invalidation marker prevents resuming\n", s->path);
+	warn("book saved to %s without resumable learning progress; learning will start at the first line\n", store);
+}
+
 /**
  * @brief Save the book of book learn <file> to <book-file>.store, with its progress before and after.
  *
@@ -1924,16 +1969,24 @@ static void learn_saves_store(LearnSaves *s, Book *book, const char *store)
 	LearnRecord r = {s->saved, next, true, -1, false, NULL};
 
 	if (book->failed) { // which games are complete in the book is not known
-		book_save_progress(book, store);
+		learn_save_without_progress(s, book, store);
 		return;
 	}
 	r.next.book = next.book = book_fingerprint(book); // (the book to save)
 	if (next.positions == s->saved.positions) r.next_links = book_count_links(book);
-	if (learn_progress_write(s->path, &r, s->games_file)) s->own = true;
-	if (book_save_progress(book, store)) {
-		r.saved = s->saved = next;
-		r.has_next = false;
-		if (learn_progress_write(s->path, &r, s->games_file)) s->own = true;
+	if (!learn_progress_write(s->path, &r, s->games_file)) {
+		learn_save_without_progress(s, book, store);
+		return;
+	}
+	s->own = true;
+	if (!book_save_progress(book, store)) return;
+	r.saved = s->saved = next;
+	r.has_next = false;
+	if (learn_progress_write(s->path, &r, s->games_file)) {
+		char marker[FILENAME_MAX + 16];
+		snprintf(marker, sizeof marker, "%s.invalid", s->path);
+		if (file_remove(marker) != 0 && errno != ENOENT)
+			warn("cannot remove %s; learning progress remains disabled\n", marker);
 	}
 }
 
@@ -1964,7 +2017,7 @@ int play_learn_file(Play *play, const char *file)
 	bool more = true;
 	Book *book = play->book;
 	char progress_file[FILENAME_MAX + 1];
-	LearnRecord record;
+	LearnRecord record = {};
 	LearnSaves saves = {};
 	unsigned long long hash = LEARN_HASH_START, fingerprint = 0; // (0: not computed, for a progress of no line learned)
 	bool read_failed = false;
@@ -1976,7 +2029,9 @@ int play_learn_file(Play *play, const char *file)
 
 	// the lines learned by a run that did not end
 	file_add_ext(options.book_file, ".learn", progress_file);
-	if (!learn_progress_read(progress_file, &record)) {
+	if (learn_progress_blocked(progress_file)) {
+		warn("ignoring stale learning progress %s; the games of %s are learned from the first line\n", progress_file, file);
+	} else if (!learn_progress_read(progress_file, &record)) {
 		if (record.old) warn("%s was written by an earlier version, that does not tell the book and the file of games it is of: the games of %s are learned from the first line\n", progress_file, file);
 	} else if (strcmp(record.file, file) != 0) {
 		warn("%s is the progress of book learn of another file (%s): the games of %s are learned from the first line\n", progress_file, record.file, file);

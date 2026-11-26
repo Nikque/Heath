@@ -3,7 +3,8 @@
 
 usage: run_regression.py <regression.exe> <work dir> <eval.dat> <fixture.dat> [case ...]
 Each case runs in <work dir> (with tests/merge-complete-fixture.dat copied there), with
-EDAX_EVAL_FILE set, a time limit of 60 s (REGRESSION_TIMEOUT changes it), on logical CPU 0 (REGRESSION_CPU changes it),
+EDAX_EVAL_FILE set, a time limit of 60 s (REGRESSION_TIMEOUT overrides it),
+on logical CPU 0 (REGRESSION_CPU changes it),
 and the output saved as <case>.out. A summary
 line per case gives the exit code and the time.
 """
@@ -19,7 +20,11 @@ CASES = ['bool', 'short', 'ggf', 'edx', 'savefail', 'deviatesave', 'expandredo',
          'unsupported', 'bookio', 'truncated', 'corruptstartup', 'ggsclock', 'cassio', 'events',
          'missinglink', 'mergefile', 'linkstore', 'mergetwice', 'negamaxloop', 'learnline', 'hashlock',
          'lastgame', 'basereplace', 'keepunread', 'statsrange', 'gamescore', 'badinput', 'wthortrunc',
-         'cassiolist', 'parsers', 'tools', 'unique', 'bookform2', 'evalform2', 'evalslots', 'crc32c', 'bigcounts', 'bookread', 'mergehint', 'newform', 'evalmobility', 'evalform2mob', 'evalbadconv']
+         'cassiolist', 'parsers', 'tools', 'unique', 'bookform2', 'evalform2', 'evalslots', 'crc32c',
+         'bigcounts', 'bookread', 'mergehint', 'newform', 'evalmobility', 'evalform2mob', 'evalbadconv',
+         'reproducible', 'taskzero', 'stabwindow', 'last-empty-diagonals', 'eval-vectors', 'stability-pair',
+         'importscore', 'mergeorient', 'deviate254', 'deviateexport', 'configpath', 'histogram', 'gtpclock',
+         'gtpregpass', 'ggsturn', 'gameio', 'optionsdump']
 
 
 def main(argv):
@@ -36,6 +41,7 @@ def main(argv):
     shutil.copyfile(fixture, os.path.join(work, 'tests', 'merge-complete-fixture.dat'))
     env = dict(os.environ, EDAX_EVAL_FILE=eval_file)
     failed = 0
+    skipped = 0
     for case in cases:
         t = time.time()
         with open(os.path.join(work, case + '.out'), 'wb') as out:
@@ -54,9 +60,13 @@ def main(argv):
                 p.kill()
                 p.wait()
                 code = 'timeout'
+        if code == 77:
+            skipped += 1
+            print(f"{case}: skipped (unavailable in this build)")
+            continue
         failed += code != 0
         print(f'{case}: exit {code}, {time.time() - t:.1f} s')
-    print(f'{len(cases)} cases, {failed} not 0')
+    print(f'{len(cases)} cases, {skipped} skipped, {failed} failed')
     return 0 if failed == 0 else 1
 
 

@@ -213,7 +213,8 @@ def main():
                 continue
             cdir = a.c2
         if not os.path.exists(os.path.join(cdir, tool + '.exe')) or not os.path.exists(os.path.join(a.cpp, tool + '.exe')):
-            print(f'{name:3s} {tool:9s} skipped (no exe)')
+            print(f'{name:3s} {tool:9s} FAILED (missing required executable)')
+            bad += 1
             skipped += 1
             continue
         ran += 1

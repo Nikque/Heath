@@ -32,6 +32,16 @@ int main(int argc, char **argv)
 		else if (!strcmp(argv[i], "-eval")) eval_file = value(i);
 	}
 	if (nt < 1) evtool::die("bad threads %s", argv[5]);
+	FILE *f = evtool::xfopen(start, "rb");
+	const long long n = evtool::rec_count(f, start);
+	if ((unsigned long long) n > SIZE_MAX / sizeof (Rec)) evtool::die("%s contains too many records", start);
+	Rec *S = (Rec *) evtool::xmalloc((size_t) (n ? n : 1) * sizeof *S);
+	long long records_read = 0;
+	evtool::rec_read(S, (size_t) n, f, start, &records_read);
+	if (records_read != n || fgetc(f) != EOF || ferror(f))
+		evtool::die("cannot read %s (a read error, or the file changed)", start);
+	if (fclose(f) != 0) evtool::die("cannot close %s", start);
+
 	options.n_task = 1;
 	options.hash_table_size = 18;
 	options.verbosity = 0;
@@ -42,11 +52,6 @@ int main(int argc, char **argv)
 	eval_open(options.eval_file);
 	search_global_init();
 
-	FILE *f = evtool::xfopen(start, "rb");
-	long long n = evtool::file_size(f) / (long long) sizeof (Rec);
-	Rec *S = (Rec *) evtool::xmalloc(n * sizeof *S);
-	n = (long long) fread(S, sizeof *S, n, f);
-	fclose(f);
 	if (n_pick > n) n_pick = n;
 	// partial Fisher-Yates: the first n_pick records are a random sample
 	for (long long i = 0; i < n_pick; ++i) {

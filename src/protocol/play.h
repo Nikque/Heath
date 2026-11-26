@@ -33,6 +33,7 @@ typedef struct Play {
 	Search search;             /**< search. */
 	Result result;             /**< search result. */
 	Book *book;                /**< opening book */
+	Random *book_random;       /**< random state for choosing a book move */
 	int type;                  /**< ui type */
 	int player;                /**< current player's color. */
 	int initial_player;        /**< initial player's color. */

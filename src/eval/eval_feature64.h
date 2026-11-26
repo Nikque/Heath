@@ -1,9 +1,8 @@
 /**
  * @file eval_feature64.h
  *
- * Feature tables of the 64-slot evaluation (EVAL_SLOTS=64), written by tools/port/gen_eval64.py
- * from the 48-slot tables of eval.cpp (slots 0-47) and the extra pattern groups (slots 48-63).
- * Do not edit: run the script again.
+ * Feature tables of the production 64-slot evaluation (13 pattern groups).
+ * The historical four-group prototype in tools/port does not regenerate these tables.
  */
 
 /** extra groups: squares, weights, and what is added to a feature of fewer than 10 squares to index OPPONENT_FEATURE */

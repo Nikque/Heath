@@ -19,6 +19,7 @@
 #include "core/settings.h"
 
 #include <assert.h>
+#include <limits.h>
 #include <stddef.h>
 #include <math.h>
 
@@ -629,7 +630,9 @@ static bool search_probcut(Search *search, const int alpha, const int depth, con
 
 		// compute evaluation error (i.e. error at depth 0) averaged for both depths
 		eval_score = search_eval_0(search);
-		eval_error = ft * 0.5 * (eval_sigma(search->eval.n_empties, depth, 0) + eval_sigma(search->eval.n_empties, depth, probcut_depth)) + RCD;
+		const double margin = ft * 0.5 * (eval_sigma(search->eval.n_empties, depth, 0) + eval_sigma(search->eval.n_empties, depth, probcut_depth)) + RCD;
+		if (!(margin > INT_MIN + 128.0 && margin < INT_MAX - 128.0)) return false;
+		eval_error = (int) margin;
 	
 		// try a probable upper cut first
 		eval_beta = beta - eval_error;
@@ -1141,7 +1144,8 @@ int PVS_midgame(Search *search, const int alpha, const int beta, int depth, Node
 			// other moves : try to refute the first/best one
 			while ((move = node_next_move(&node))) {
 				if (!node_split(&node, move)) {
-					const int alpha = node.alpha;
+					const int alpha = ybwc_load(&node.alpha);
+					if (alpha >= node.beta) break;
 					search_update_midgame(search, move);
 					const int off = (search->height > 1 || options.pc_dev_root); // (height 1: the root of a lazy helper)
 					search->pv_dev[search->height] += off;

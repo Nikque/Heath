@@ -1,10 +1,15 @@
 """Create the Edax runtime ZIP with the upstream 4.5.5 directory layout.
 
-Usage: python package-release.py path/to/edax-4.5.5-heath.N-64.zip --slots 64|48 [--eval eval.dat] [--without-macos]
+This script creates a developer archive of the cross-platform binaries. The Heath release ZIP described in README.md
+contains the Windows and Android binaries and training tools; its packaging process is separate.
+
+Usage: python package-release.py path/to/edax-4.5.5-heath.N-64.zip --slots 64|48 [--eval eval.dat] [--without-macos] [--artifacts DIR]
 --slots: the feature slots of the binaries (EVAL_SLOTS of their build).
 --eval: the eval.dat put in the ZIP as bin/data/eval.dat (default: bin/data/eval.dat of the repository, the
 one of eval2, refused). It must hold the weights of the model of --slots, checked as Edax reads them
 (eval_model below).
+--artifacts DIR: directory containing the unmerged release-* artifacts from one workflow run for this build.
+The default is release-artifacts/ next to this script.
 --without-macos makes a ZIP to check before the macOS files (built by the
 release-binaries workflow) are there: it leaves them out.
 The 32-bit macOS executable is intentionally omitted: current Xcode SDKs
@@ -13,8 +18,10 @@ as containing this fork's fixes.
 """
 
 from hashlib import sha256
+from math import isfinite
 from os import replace
 from pathlib import Path
+from subprocess import check_output
 from struct import unpack_from
 from sys import argv
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
@@ -33,19 +40,32 @@ EVAL_LEFT_OUT = ((13 + 5, bytes((38, 45, 52, 53, 54, 59, 60, 61, 62, 63))),
                  (13 + 11, bytes((2, 3, 6, 7, 9, 11, 13, 14, 15, 21))))
 
 
-def crc32c(data: bytes) -> int:
-    """CRC-32C (Castagnoli), as crc32c_bytes of src/util"""
+def crc32c_entry(value):
+    for _ in range(8):
+        value = (value >> 1) ^ (0x82F63B78 if value & 1 else 0)
+    return value
+
+
+CRC32C_TABLE = tuple(crc32c_entry(i) for i in range(256))
+
+
+def crc32c(data):
     crc = 0xFFFFFFFF
-    for b in data:
-        crc ^= b
-        for _ in range(8):
-            crc = (crc >> 1) ^ 0x82F63B78 if crc & 1 else crc >> 1
+    for byte in data:
+        crc = CRC32C_TABLE[(crc ^ byte) & 255] ^ (crc >> 8)
     return crc ^ 0xFFFFFFFF
+
+
+# SHA-256 of the complete ordered group descriptors written by eval_groups_write.
+PATTERN_LAYOUT = {
+    13: "2d126283fe2bab2eca8b3ea093ca3e4029486122e400ec124b10c53aa1db7bc6",
+    26: "3b770d3ad337e60b532825ea26e2d8af0855b2d19e8c40edf78301e6c426b412",
+}
 
 
 def eval_model(data: bytes, name: str) -> str:
     """The model of the weights of an eval.dat, as src/eval/eval.cpp (eval_load) tells them apart: "old" (form 1, or
-    form 2 without the extra groups: the weights of Edax 4.5 or of eval2, refused by Heath), "48" (the weights are 0
+    form 2 without the extra groups: the weights of Edax 4.5 or of eval2, excluded from the Heath release ZIP), "48" (the weights are 0
     in the groups the 48 slots leave out: read by the 48 and the 64 slots), "64" (refused by the 48 slots). A file that
     Edax does not read stops the script."""
     if data[:8] in (b"XADELAVE", b"EDAXEVAL"):
@@ -67,6 +87,12 @@ def eval_model(data: bytes, name: str) -> str:
     n_pattern = n_group - (1 if mobility else 0)
     if sum(sizes) != n_weights or len(data) != size + n_plies * n_weights * 2 + 8 or data[-4:] != b"EEND":
         raise SystemExit(f"{name} is damaged (the sizes of its groups, of its weights)")
+    if sha256(b"".join(groups[:n_pattern])).hexdigest() != PATTERN_LAYOUT.get(n_pattern):
+        raise SystemExit(f"{name} has an unsupported pattern layout")
+    if not all(isfinite(x) for x in unpack_from("<6d", data, 48)):
+        raise SystemExit(f"{name} has invalid error coefficients")
+    if crc32c(memoryview(data)[size:-8]) != unpack_from("<I", data, len(data) - 8)[0]:
+        raise SystemExit(f"{name} has a damaged weight payload")
     if n_pattern == 13:
         return "old"
     if n_pattern != 26 or any(groups[g][8:18] != squares for g, squares in EVAL_LEFT_OUT):
@@ -109,6 +135,32 @@ LIBRARIES = (
     "bin/libedax-x64-v4.dll",
 )
 
+ARTIFACT_FOR = {
+    "bin/wEdax-x86-64.exe": "release-windows-x64",
+    "bin/wEdax-x86-64-v3.exe": "release-windows-x64",
+    "bin/wEdax-x86-64-v4.exe": "release-windows-x64",
+    "bin/libedax-x64.dll": "release-windows-x64",
+    "bin/libedax-x64-v3.dll": "release-windows-x64",
+    "bin/libedax-x64-v4.dll": "release-windows-x64",
+    "bin/wEdax-x86.exe": "release-windows-x64_x86",
+    "bin/wEdax-x86-sse.exe": "release-windows-x64_x86",
+    "bin/wEdax-arm64.exe": "release-windows-x64_arm64",
+    "bin/lEdax-x86": "release-linux",
+    "bin/lEdax-x86-64": "release-linux",
+    "bin/lEdax-x86-64-v3": "release-linux",
+    "bin/lEdax-x86-64-v4": "release-linux",
+    "bin/libedax-x86-64.so": "release-linux",
+    "bin/libedax-x86-64-v3.so": "release-linux",
+    "bin/libedax-x86-64-v4.so": "release-linux",
+    "bin/mEdax-x64-modern": "release-macos-x64",
+    "bin/mEdax-arm64": "release-macos-arm64",
+    "bin/libedax.universal.dylib": "release-macos-arm64",
+    "bin/aEdax-arm64-v8a": "release-android",
+    "bin/aEdax-armeabi-v7a": "release-android",
+    "bin/libedax-arm64-v8a.so": "release-android",
+    "bin/libedax-armeabi-v7a.so": "release-android",
+}
+
 MACOS_FILES = ("bin/mEdax-arm64", "bin/mEdax-x64-modern", "bin/libedax.universal.dylib")
 
 OTHER_FILES = (
@@ -129,7 +181,48 @@ OTHER_FILES = (
 
 
 # the user manual (since v4.5.5-nikque.13): every page of manual/, manual/ja and manual/en
-MANUAL_FILES = tuple(sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / "manual").rglob("*.md")))
+MANUAL_PAGES = (
+    "01-introduction.md",
+    "02-quick-start.md",
+    "03-playing.md",
+    "04-settings.md",
+    "05-search.md",
+    "06-book-basics.md",
+    "07-book-learning.md",
+    "08-book-maintenance.md",
+    "09-large-books.md",
+    "10-files.md",
+    "11-solve-bench.md",
+    "12-integration.md",
+    "13-troubleshooting.md",
+    "14-reference.md",
+    "15-glossary.md",
+    "README.md",
+)
+MANUAL_FILES = ("manual/README.md",) + tuple(
+    f"manual/{language}/{page}" for language in ("en", "ja") for page in MANUAL_PAGES
+)
+
+
+def check_build_source(artifacts, names):
+    folders = sorted({ARTIFACT_FOR[name] for name in names if name in ARTIFACT_FOR})
+    origin = None
+    for folder in folders:
+        marker = artifacts / folder / "build-id.txt"
+        if not marker.is_file():
+            raise SystemExit(f"組み立て元の記録がありません: {marker}")
+        fields = marker.read_text(encoding="utf-8").split()
+        if (len(fields) != 3 or len(fields[1]) != 40 or
+                any(ch not in "0123456789abcdef" for ch in fields[1]) or not fields[2].isdigit()):
+            raise SystemExit(f"組み立て元の記録を読めません: {marker}")
+        if origin is not None and fields != origin:
+            raise SystemExit(f"異なるコミットまたは実行の成果物が混在しています: {marker}")
+        origin = fields
+    if (ROOT / ".git").exists():
+        head = check_output(["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
+        if head != origin[1]:
+            raise SystemExit("成果物のコミットが梱包元のHEADと一致しません")
+    return origin
 
 
 def main() -> None:
@@ -137,15 +230,18 @@ def main() -> None:
         raise SystemExit(__doc__)
     output = Path(argv[1]).resolve()
     slots, eval_file, without_macos = None, ROOT / "bin/data/eval.dat", False
+    artifacts = ROOT / "release-artifacts"
     rest = argv[2:]
     while rest:
         option = rest.pop(0)
         if option == "--without-macos":
             without_macos = True
-        elif option in ("--slots", "--eval") and rest:
+        elif option in ("--slots", "--eval", "--artifacts") and rest:
             value = rest.pop(0)
             if option == "--slots":
                 slots = value
+            elif option == "--artifacts":
+                artifacts = Path(value).resolve()
             else:
                 eval_file = Path(value).resolve()
         else:
@@ -169,16 +265,19 @@ def main() -> None:
             print(f"left out: {name}")
     # every file is checked before the ZIP is written, and the ZIP is written to another file first: a missing
     # file or a failure leaves no partial ZIP, nor replaces an existing one (up to v4.5.5-nikque.15 it did)
-    missing = [name for name in names if name != "bin/data/eval.dat" and not (ROOT / name).is_file()]
+    sources = {name: artifacts / ARTIFACT_FOR[name] / Path(name).name
+               if name in ARTIFACT_FOR else ROOT / name for name in names}
+    missing = [str(sources[name]) for name in names if name != "bin/data/eval.dat" and not sources[name].is_file()]
     if missing:
         raise SystemExit("missing files: " + ", ".join(missing))
 
+    check_build_source(artifacts, names)
     output.parent.mkdir(parents=True, exist_ok=True)
     partial = output.with_name(output.name + ".tmp")
     try:
         with ZipFile(partial, "w") as archive:
             for name in names:
-                data = eval_data if name == "bin/data/eval.dat" else (ROOT / name).read_bytes()
+                data = eval_data if name == "bin/data/eval.dat" else sources[name].read_bytes()
                 info = ZipInfo(name, date_time=(2026, 9, 27, 0, 0, 0))
                 info.create_system = 3
                 executable = name in (*BINARIES, *LIBRARIES) and not name.endswith((".exe", ".dll"))

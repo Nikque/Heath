@@ -66,13 +66,15 @@ int main(int argc, char **argv)
 		char name[1024];
 		evtool::xname(name, "%s/book%02d.bin", datadir, p);
 		FILE *f = fopen(name, "rb");
+		if (!f && errno != ENOENT) evtool::die("cannot open %s", name);
 		if (!f) continue;
-		const long long n = evtool::file_size(f) / (long long) sizeof (Rec);
+		const long long n = evtool::rec_count(f, name);
 		const double keep = n > per_ply ? (double) per_ply / n : 1.0;
 		const unsigned long long thr = keep >= 1.0 ? ~0ULL : (unsigned long long) (keep * 18446744073709551615.0);	// (2^64 as a double does not fit)
 		Rec *buf = (Rec *) evtool::xmalloc(sizeof (Rec) << 20);
 		size_t m;
-		while ((m = fread(buf, sizeof (Rec), 1 << 20, f)) > 0) {
+		long long done = 0;
+		while ((m = evtool::rec_read(buf, 1 << 20, f, name, &done)) > 0) {
 			for (size_t i = 0; i < m; ++i) {
 				const unsigned long long h = mix64(buf[i].P * 0x9E3779B97F4A7C15ULL ^ buf[i].O);
 				if (h % 32 == 0) continue;	// test split
@@ -81,6 +83,7 @@ int main(int argc, char **argv)
 				S[nS++] = buf[i];
 			}
 		}
+		if (done != n) evtool::die("record count changed while reading %s", name);
 		free(buf);
 		fclose(f);
 	}

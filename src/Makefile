@@ -400,8 +400,8 @@ noip:
 code:
 	$(CC) $(CFLAGS) $(LTOFLAG) core/flip/generate_flip.cpp -o generate_flip
 	$(CC) $(CFLAGS) $(LTOFLAG) core/flip/generate_count_flip.cpp -o generate_count_flip
-	generate_flip
-	generate_count_flip
+	cd core/flip && ../../generate_flip
+	cd core/flip && ../../generate_count_flip
 
 default:
 	help
