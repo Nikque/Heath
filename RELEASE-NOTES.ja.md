@@ -41,7 +41,7 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 
 64枠版と48枠版は、それぞれ従来の評価重みを使います。
 
-初回の64枠ZIPではWindows x64の標準版とv3がPGOです。追加の `edax-4.5.5-heath.21-64-pgo.zip` ではv4もPGOでビルドし、日英の修正一覧を更新しています。48枠の追加ZIP `edax-4.5.5-heath.21-48-docs1.zip` は日英の修正一覧だけを更新します。
+64枠と48枠のZIP（`edax-4.5.5-heath.21-64.zip`・`edax-4.5.5-heath.21-48.zip`）では、Windowsの実行ファイル5本（`wEdax-x86-64-v4.exe`・`wEdax-x86-64-v3.exe`・`wEdax-x86-64.exe`・`wEdax-x86-sse.exe`・`wEdax-x86.exe`）とDLL 3本がすべてPGO版です。2026-11-26にReleaseのZIPをこの形に差し替えました。それより前に取得したZIPでは、`wEdax-x86-64-v4.exe` とDLL 3本はPGOなしです。一時あった追加のZIP（`edax-4.5.5-heath.21-64-pgo.zip`・`edax-4.5.5-heath.21-48-docs1.zip`）は取り下げました。PGO版にしたことによる速さの違いは測っていません。
 
 ### 探索と libedax
 

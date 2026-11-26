@@ -9,6 +9,12 @@ For what changed, see the [release notes](../../RELEASE-NOTES.md). "Above" and "
 - Windows tests with synthetic inputs covered game-file import, book learning and resumption, in-place OBF replacement, book backups and protocols.
 - The backup fallback was exercised by injecting unsupported-operation errors into the same implementation. Its behavior on real Linux, macOS and Android filesystems was not tested.
 - Large production books and playing strength were not measured.
+- On 2026-11-26, the 64-slot and 48-slot ZIPs (`edax-4.5.5-heath.21-64.zip`, `-48.zip`) were replaced. In both, all 5 Windows executables and the 3 DLLs are PGO builds. In the ZIPs as first released, 4 executables (`-v3`, `wEdax-x86-64.exe`, `wEdax-x86-sse.exe`, `wEdax-x86.exe`) were PGO builds, and `wEdax-x86-64-v4.exe` and the 3 DLLs were built without PGO.
+- The PGO build of `wEdax-x86-64-v4.exe` uses the same profile as the other 4. The PGO build of the DLLs follows the procedure of the C version: it was trained with `bench 20` and the API tests of `tests/libedax_test.c`.
+- fforum-20-39 (1 thread): the new `-v4` and the other 4 executables of the ZIP had no errors. The position counts, 92,469,515 with 64 slots and 93,641,453 with 48 slots, were the same for all 5.
+- DLLs: for the 3 DLLs of each build, the 292 API tests had no failures.
+- With the 48-slot `-v4` DLL, the first run had 1 failure, the check at line 766 of `tests/libedax_test.c` (a stopped hint has fewer than 3 moves). The 3 runs repeated in an empty folder had no failures. The DLL without PGO, before the replacement, also failed this check in 1 run of 3. It is an existing instability of the test, which depends on whether the stop arrives in time.
+- The speed difference from the PGO builds was not measured.
 
 ## v4.5.5-heath.20
 

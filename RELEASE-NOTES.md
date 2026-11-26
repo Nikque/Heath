@@ -41,7 +41,7 @@ The table lists corresponding releases. Fixes to shared functionality are carrie
 
 This maintenance release retains the respective evaluation weights for the 64-slot and 48-slot builds.
 
-The original 64-slot ZIP uses PGO for the standard and v3 Windows x64 engines. The supplemental `edax-4.5.5-heath.21-64-pgo.zip` also uses PGO for v4 and includes the expanded release notes in both languages. The supplemental 48-slot `edax-4.5.5-heath.21-48-docs1.zip` updates only the release notes.
+In the 64-slot and 48-slot ZIPs (`edax-4.5.5-heath.21-64.zip`, `edax-4.5.5-heath.21-48.zip`), all 5 Windows executables (`wEdax-x86-64-v4.exe`, `wEdax-x86-64-v3.exe`, `wEdax-x86-64.exe`, `wEdax-x86-sse.exe`, `wEdax-x86.exe`) and the 3 DLLs are PGO builds. The release ZIPs were replaced with these on 2026-11-26. In ZIPs downloaded before that, `wEdax-x86-64-v4.exe` and the 3 DLLs are built without PGO. The supplemental ZIPs that were briefly available (`edax-4.5.5-heath.21-64-pgo.zip`, `edax-4.5.5-heath.21-48-docs1.zip`) have been withdrawn. The speed difference from the PGO builds was not measured.
 
 ### Search and libedax
 

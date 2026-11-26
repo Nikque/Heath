@@ -51,7 +51,7 @@ Builds other than MSVC on Windows (Android: compiled and linked, not run on a de
 
 - Boost 1.92 (headers only) in `../third_party/boost_1_92_0`, or set `BOOST_DIR=<directory>`.
 - Windows (Visual Studio 2022, x64 Developer Command Prompt): `build-win-v4.cmd`, or in `src`: `nmake -f NMakefile vc-x64-v3` (other targets and PGO builds: `src/NMakefile`).
-- Release binaries: `tools/port/build-release.cmd <checkout> <log directory>`.
+- Release binaries: `tools/port/build-release.cmd <checkout> <log directory>`. It builds `wEdax-x86-64-v4.exe` and the 3 DLLs without PGO. In the v4.5.5-heath.21 ZIPs, replaced on 2026-11-26, these are PGO builds too: `-v4` with the same profile as the other 4 executables, the DLLs trained with `bench 20` and the API tests of `tests/libedax_test.c`. `src/NMakefile` has no PGO target for the DLLs.
 - Release ZIP: `python package-release.py <zip> --slots 64|48 --eval <eval.dat>`. `--slots` is the slot count of the binaries; `--eval` is the `eval.dat` put in the ZIP. The script checks that this `eval.dat` holds the weights of that slot count.
 - Android: NDK r27d, `ndk-build`.
 
@@ -113,6 +113,8 @@ Windows の MSVC 以外でのビルド（Android はリンクまで、実機で�
 ### ビルド
 
 上の英語の「Build」を見てください。配布の ZIP は `python package-release.py <zip> --slots 64|48 --eval <eval.dat>` で作ります。`--slots` は実行ファイルの枠の数、`--eval` は ZIP に入れる `eval.dat` で、スクリプトはこの `eval.dat` がその枠の数の重みかを確かめます。移植の作業記録は [docs/port](docs/port) にあります。
+
+配布の実行ファイルを作る `tools/port/build-release.cmd` は、`wEdax-x86-64-v4.exe` と DLL 3 本を PGO なしでビルドします。2026-11-26 に差し替えた v4.5.5-heath.21 の ZIP では、これらも PGO 版です。`-v4` はほかの 4 本と同じプロファイル、DLL は `tests/libedax_test.c` の `bench 20` と API のテストで学習しました。DLL の PGO の対象は `src/NMakefile` にありません。
 
 ### ライセンス
 
