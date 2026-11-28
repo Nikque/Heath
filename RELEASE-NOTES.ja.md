@@ -12,6 +12,7 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 
 | Heath（newedax） | C 版（nikque） | C 版（eval2） |
 |---|---|---|
+| heath.22 | nikque.35 | eval2.22 |
 | heath.21 | nikque.34 | eval2.21 |
 | heath.20 | nikque.33 | eval2.20 |
 | heath.20-pre1 | nikque.33-pre1 | eval2.20-pre1 |
@@ -34,6 +35,29 @@ C 版から取り込んだ変更の詳細は、[C 版の修正一覧](https://gi
 | newedax.3 | nikque.18 | eval2.6 |
 | newedax.2 | nikque.18 | eval2.6 |
 | newedax.1 | nikque.17 | eval2.5 |
+
+---
+
+## v4.5.5-heath.22
+
+[C 版の v4.5.5-nikque.35](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.ja.md#v455-nikque35) の変更のうち、AVX-512 版のメモリを減らす直しを入れました。評価値は変わりません。
+
+**変更**
+
+- AVX-512 版（`-v4`）は、手ごとの重みの表を作った後で、元の重みの表を解放します。64 枠の探索中のメモリは 273.7 MB → 175.1 MB です。読み込みの間だけ、最大 219.5 MB になります。
+- C 版の nikque.35 のほかの変更（AVX2 の gather 命令をやめる、重みの表を減らさない）は、Heath にはもとから当てはまりません。Heath は v4.5.5-newedax.13 から gather 命令を使わず、Heath の `eval.dat` は 0〜53 手目の重みです。
+
+**互換性**
+
+- 探索の結果（評価値・ノード数）、`eval.dat`、book のファイル形式は、前の版と同じです。
+
+**注意**
+
+- 64 枠と 48 枠の ZIP で、Windows の x64・x86 の実行ファイル 5 本と DLL 3 本は、手元で PGO 付きでビルドしたものです。
+
+**未確認**：48 枠のメモリの減り方、速さ、Intel の CPU、実 book、対局での強さ。
+
+[検証記録](docs/validation/newedax.ja.md#v455-heath22)
 
 ---
 

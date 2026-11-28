@@ -12,6 +12,7 @@ The table lists corresponding releases. Fixes to shared functionality are carrie
 
 | Heath (newedax) | C (nikque) | C (eval2) |
 |---|---|---|
+| heath.22 | nikque.35 | eval2.22 |
 | heath.21 | nikque.34 | eval2.21 |
 | heath.20 | nikque.33 | eval2.20 |
 | heath.20-pre1 | nikque.33-pre1 | eval2.20-pre1 |
@@ -34,6 +35,29 @@ The table lists corresponding releases. Fixes to shared functionality are carrie
 | newedax.3 | nikque.18 | eval2.6 |
 | newedax.2 | nikque.18 | eval2.6 |
 | newedax.1 | nikque.17 | eval2.5 |
+
+---
+
+## v4.5.5-heath.22
+
+This release takes the memory saving of the AVX-512 builds from the changes of [v4.5.5-nikque.35 of the C version](https://github.com/Nikque/edax-reversi-AVX/blob/edax-4.5.5-fixes/RELEASE-NOTES.md#v455-nikque35). The scores do not change.
+
+**Changes**
+
+- The AVX-512 builds (`-v4`) free the original weight table once the table of each ply is made. Memory during a search of the 64 slots: 273.7 MB → 175.1 MB. While the weights are read, the peak is 219.5 MB.
+- The other changes of nikque.35 of the C version (no AVX2 gather instructions, no reduction of the weight tables) already hold for Heath: Heath has not used the gather instructions since v4.5.5-newedax.13, and the `eval.dat` of Heath has the weights of plies 0 to 53.
+
+**Compatibility**
+
+- The search results (scores and node counts), `eval.dat` and the book file format are the same as in the previous version.
+
+**Notes**
+
+- In the 64-slot and 48-slot ZIP files, the five Windows x64 and x86 executables and the three DLLs are local PGO builds.
+
+**Not checked**: the memory saving of the 48 slots, the speed, Intel CPUs, production books, playing strength.
+
+[Tests and measurements](docs/validation/newedax.en.md#v455-heath22)
 
 ---
 

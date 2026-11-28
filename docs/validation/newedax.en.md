@@ -4,6 +4,14 @@ Tests and measurements done for each version, moved without changes from the for
 
 For what changed, see the [release notes](../../RELEASE-NOTES.md). "Above" and "below" in the text refer to positions in the former document.
 
+## v4.5.5-heath.22
+
+- The fix is `08ef4dd`. In the AVX-512 builds, `eval_open()` frees the original weight table after `eval_load()`. The three checks of `tests/regression.cpp` that compare the original weight table call `eval_load()` after `eval_close()`.
+- The tests used the AVX-512 build (64 slots) without PGO. With the 399 positions of nikque.35 and a full board, this version and the source of the previous version (`fac8e01`) gave the same depth, score, node count and principal variation everywhere.
+- Regression tests (`tests/regression.cpp`): the 7 tests of the evaluation (`evalslots`, `evalmobility`, `evalform2mob`, `evalbadconv`, `evalform2`, `bookform2`, and one of `core`) exited with 0 for both versions, with the same output. The other 61 tests also exited with 0.
+- Memory (the 40 positions with 52 empty squares, level 16, working set during the search, 64 slots): 273.7 MB → 175.1 MB. The peak, while the weights are read, is 219.5 MB.
+- The memory of the 48 slots and the speed were not measured.
+
 ## v4.5.5-heath.21
 
 - Windows tests with synthetic inputs covered game-file import, book learning and resumption, in-place OBF replacement, book backups and protocols.
