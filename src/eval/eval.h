@@ -93,7 +93,7 @@ typedef struct Eval_weight {
 /** number of plies */
 enum { EVAL_N_2PLY = 54 / 2 };	// decreased from 60 in 4.5.1
 
-extern Eval_weight (*EVAL_WEIGHT)[EVAL_N_2PLY - 1];	// for 2..53, interleaved
+extern Eval_weight (*EVAL_WEIGHT)[EVAL_N_2PLY - 1];	// for 2..53, interleaved (AVX-512: NULL after eval_open(), which keeps EVAL_FLAT only)
 #ifdef __AVX512F__
 /** the weights of each ply from 0 to 60 in one table of shorts: fewer cache lines than the interleaved table */
 enum { EVAL_FLAT_N = (int) (sizeof (Eval_weight) / 4) };

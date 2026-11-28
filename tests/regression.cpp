@@ -291,8 +291,8 @@ static int eval_form2_mobility_case(void){
  const bool length=fsize==96+14*20+4+61L*(114364+64)*2+8;
  bool weights=true,mobility=true;
 #if EVAL_MOBILITY
- options.verbosity=0;eval_open(name[0]);size_t z=sizeof *EVAL_WEIGHT;void *w=malloc(z);memcpy(w,EVAL_WEIGHT,z);eval_close();
- eval_open("audit-f2m-2.dat");weights=memcmp(w,EVAL_WEIGHT,z)==0;mobility=EVAL_HAS_MOBILITY&&memcmp(mob,EVAL_MOBILITY_WEIGHT,sizeof mob)==0;eval_close();free(w);
+ options.verbosity=0;eval_close();eval_load(name[0],false);size_t z=sizeof *EVAL_WEIGHT;void *w=malloc(z);memcpy(w,EVAL_WEIGHT,z);eval_close();
+ eval_load("audit-f2m-2.dat",false);weights=memcmp(w,EVAL_WEIGHT,z)==0;mobility=EVAL_HAS_MOBILITY&&memcmp(mob,EVAL_MOBILITY_WEIGHT,sizeof mob)==0;eval_close();free(w);
 #endif
  printf("EVAL form2 with mobility: form1 round trip=%d WBOM same=%d header=%d length=%d weights=%d mobility=%d (EVAL_MOBILITY=%d)\n",round_trip,wbom,header,length,weights,mobility,EVAL_MOBILITY);
  return round_trip&&wbom&&header&&length&&weights&&mobility?0:2;}
@@ -453,7 +453,7 @@ int main(int argc,char **argv){if(argc<2)return 1;setbuf(stdout,NULL);bit_init()
  else if(!strcmp(t,"pgnfen")){Game g;Board want=late_board(12);char fen[128];FILE *f;TMPFILE(f);fprintf(f,"[FEN \"%s\"]\n*\n",board_to_FEN(&want,BLACK,fen));rewind(f);game_import_pgn(&g,f);printf("PGN FEN expected_empty=%d actual_empty=%d\n",board_count_empties(&want),board_count_empties(&g.initial_board));fclose(f);}
  else if(!strcmp(t,"unsupported")){FILE *f;OPEN(f,"audit-sentinel.xyz","wb");fputs("KEEP THIS FILE",f);fclose(f);Play *p=(Play*)mm_malloc(sizeof *p);memset(p,0,sizeof *p);board_init(&p->initial_board);p->initial_player=BLACK;play_save(p,"audit-sentinel.xyz");OPEN(f,"audit-sentinel.xyz","rb");fseek(f,0,SEEK_END);printf("UNSUPPORTED SAVE bytes_before=14 bytes_after=%ld\n",ftell(f));fclose(f);mm_free(p);}
  else if(!strcmp(t,"bookio")){Book b={0},c={0};FILE *f;if(!have_fixture())return 2;OPEN(f,"audit-book-saved.dat","wb");fputs("KEEP",f);fclose(f);if(!book_load(&b,FIXTURE)||b.n_nodes!=2)return 2;if(!book_save(&b,"audit-book-saved.dat"))return 2;if(!book_load(&c,"audit-book-saved.dat")||c.n_nodes!=2)return 2;printf("BOOK save and reload nodes=%d\n",c.n_nodes);book_free(&b);book_free(&c);}
- else if(!strcmp(t,"evalslots")){options.verbosity=0;eval_open(eval_path());long checks=0,xchecks=0;
+ else if(!strcmp(t,"evalslots")){options.verbosity=0;eval_close();eval_load(eval_path(),false);long checks=0,xchecks=0;
 #if EVAL_SLOTS > 48
 Eval_weight (*w0)[EVAL_N_2PLY-1]=EVAL_WEIGHT,(*w1)[EVAL_N_2PLY-1]=(Eval_weight(*)[EVAL_N_2PLY-1])malloc(sizeof *EVAL_WEIGHT);memcpy(w1,w0,sizeof *EVAL_WEIGHT);for(int p=0;p<EVAL_N_2PLY-1;++p)for(int i=0;i<4;++i)for(int k=0;k<59049;++k){(*w1)[p].X[i][k][0]=(short)(rr()%201)-100;(*w1)[p].X[i][k][1]=(short)(rr()%201)-100;}
 #ifdef __AVX512F__
@@ -486,7 +486,7 @@ Board pb=b;if(e.n_empties&1){pb.player=b.opponent;pb.opponent=b.player;}for(int 
   const unsigned short ps=(unsigned short)np;memcpy(h+36,&ps,2);unsigned int crc=crc32c_bytes(0,h,size-4);memcpy(h+size-4,&crc,4);
   OPEN(f,"audit-eval-plies.dat","wb");fwrite(h,1,size,f);for(int i=0;i<65536;++i)fputc(0,f);fclose(f);const bool plies_refused=!eval_convert("audit-eval-plies.dat","audit-eval-plies1.dat");
   printf("EVAL convert of bad files: one ply refused=%d, %u plies (%llu bytes, %llu modulo 2^32) refused=%d\n",one_refused,np,(unsigned long long)np*nw*2,low,plies_refused);if(!one_refused||!plies_refused)return 2;}
- else if(!strcmp(t,"evalform2")){if(!eval_convert(form1_path(),"audit-eval2.dat")||!eval_convert("audit-eval2.dat","audit-eval1.dat"))return 2;FILE *f,*g;OPEN(f,form1_path(),"rb");OPEN(g,"audit-eval1.dat","rb");int same=1;for(int x,y;;){x=fgetc(f);y=fgetc(g);if(x!=y){same=0;break;}if(x==EOF)break;}fclose(f);fclose(g);eval_open(form1_path());size_t z=sizeof *EVAL_WEIGHT;void *w=malloc(z);memcpy(w,EVAL_WEIGHT,z);eval_close();eval_open("audit-eval2.dat");int equal=memcmp(w,EVAL_WEIGHT,z)==0;eval_close();free(w);printf("EVAL form2 round trip same=%d weights equal=%d\n",same,equal);if(!same||!equal)return 2;}
+ else if(!strcmp(t,"evalform2")){if(!eval_convert(form1_path(),"audit-eval2.dat")||!eval_convert("audit-eval2.dat","audit-eval1.dat"))return 2;FILE *f,*g;OPEN(f,form1_path(),"rb");OPEN(g,"audit-eval1.dat","rb");int same=1;for(int x,y;;){x=fgetc(f);y=fgetc(g);if(x!=y){same=0;break;}if(x==EOF)break;}fclose(f);fclose(g);eval_close();eval_load(form1_path(),false);size_t z=sizeof *EVAL_WEIGHT;void *w=malloc(z);memcpy(w,EVAL_WEIGHT,z);eval_close();eval_load("audit-eval2.dat",false);int equal=memcmp(w,EVAL_WEIGHT,z)==0;eval_close();free(w);printf("EVAL form2 round trip same=%d weights equal=%d\n",same,equal);if(!same||!equal)return 2;}
  else if(!strcmp(t,"truncated")){if(copy_cut(FIXTURE,"audit-truncated.dat")<0)return 2;Book b={0};int ok=book_load(&b,"audit-truncated.dat");printf("TRUNCATED accepted=%d nodes=%d original_expected=2\n",ok,b.n_nodes);book_free(&b);if(ok)return 2;}
  else if(!strcmp(t,"corruptstartup")){long n=copy_cut(FIXTURE,"audit-truncated.dat");if(n<0)return 2;options.book_file=(char*)"audit-truncated.dat";init_engine(1);UI *ui=ui_new();ui->type=UI_GTP;ui_init_gtp(ui);int safe=!ui->book.need_saving;ui_free_gtp(ui);ui_delete(ui);FILE *in;OPEN(in,"audit-truncated.dat","rb");fseek(in,0,SEEK_END);long after=ftell(in);fclose(in);printf("CORRUPT STARTUP autosave_disabled=%d original_bytes=%ld after_bytes=%ld\n",safe,n-1,after);if(!safe||after!=n-1)return 2;}
  else if(!strcmp(t,"ggsclock")){GGSClock c;char input[WORD_SIZE+1];memset(input,'1',WORD_SIZE);input[WORD_SIZE]=0;ggs_parse_clock(&c,input);}

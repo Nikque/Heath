@@ -1230,6 +1230,10 @@ static void eval_load(const char* file, const bool any_model)
 void eval_open(const char* file)
 {
 	eval_load(file, false);
+#ifdef __AVX512F__
+	free(EVAL_WEIGHT);	// the search reads EVAL_FLAT only (eval_load() keeps the interleaved table)
+	EVAL_WEIGHT = NULL;
+#endif
 }
 
 /**
